@@ -206,6 +206,8 @@
         <li><span class="txt">Übertragung zum Mac (Briefkasten)<div class="klein">${eingangToken ? 'eingerichtet' + (ls.get('letzterVersand', null) ? ' · zuletzt gesendet ' + new Date(ls.get('letzterVersand')).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '') + (ls.get('letzterFehler', null) ? '<br>letzter Fehler: ' + String(ls.get('letzterFehler')).split(' ')[0] : '') : 'noch nicht eingerichtet: Schlüssel für kk-eingang einfügen'}</div>
           <div style="display:flex;gap:6px;margin-top:8px"><input id="kkToken" type="password" autocomplete="off" placeholder="${eingangToken ? 'neuen Schlüssel einfügen' : 'github_pat_…'}" style="flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
           <button class="zweit" type="button" onclick="__KK.tokenSpeichern()">Speichern</button></div></span></li>
+        <li><span class="txt">App neu laden<div class="klein">App-Version ${esc6(v.app)} · Falls etwas veraltet aussieht. Passwort, Briefkasten und deine Runden bleiben erhalten.</div></span>
+          <button class="zweit" type="button" onclick="__KK.neuLaden()">Neu laden</button></li>
         <li><span class="txt">Passwort auf diesem Handy vergessen<div class="klein">Danach fragt die App beim Öffnen wieder nach dem Passwort.</div></span>
           <button class="zweit" type="button" onclick="__KK.abmelden()">Vergessen</button></li>
       </ul></section>`;
@@ -231,8 +233,16 @@
       if (e === 'neu') location.reload();
       else alertLeise(e === 'aktuell' ? 'Schon auf dem neuesten Stand.' : e === 'offline' ? 'Kein Internet. Später noch einmal versuchen.' : 'Aktualisieren hat nicht geklappt. Später noch einmal versuchen.');
     },
+    async neuLaden() {
+      // nur den App-Code vergessen (Service Worker und Zwischenspeicher), Daten in IndexedDB/localStorage bleiben
+      try { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())); } catch (e) {}
+      try { const n = await caches.keys(); await Promise.all(n.map(x => caches.delete(x))); } catch (e) {}
+      try { await weg('version'); } catch (e) {}
+      location.replace('./?neu=' + Date.now());
+    },
     async abmelden() { await weg('schluessel'); location.reload(); }
   };
+  const esc6 = a => String(a || '–').slice(0, 6).replace(/[^0-9a-f–]/g, '');
   function alertLeise(text) {
     let b = $('#kkMeldung');
     if (!b) { b = document.createElement('div'); b.id = 'kkMeldung'; b.className = 'kk-meldung'; document.body.appendChild(b); }
@@ -243,7 +253,7 @@
   /* ---------- Ablauf ---------- */
   async function los() {
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
-    if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+    if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).then(r => r.update()).catch(() => {}); } catch (e) {} }
 
     const auto = ls.get('auto', true);
     const hatDaten = !!(await hole('daten'));
