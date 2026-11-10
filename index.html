@@ -8,7 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#f6f4ef">
+<meta name="theme-color" content="#f4d8d5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2b1b1a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Lernen unterwegs</title>
@@ -262,8 +264,11 @@ nav.tabs a[aria-current="page"]{color:var(--accent)}
 :root[data-theme="dark"]{
   --bg:#161414; --panel:#1f1c1c; --ink:#efeceb; --muted:#9e9897; --line:#302b2b;
   --accent:#ef6a62; --accent-soft:#3a2120; --accent-ink:#f59a93; --schatten:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}
-body{font-family:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
-  background:var(--bg) radial-gradient(120% 60% at 50% -10%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 70%) no-repeat}
+:root{--oben:#f4d8d5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--oben:#2b1b1a}}
+:root[data-theme="dark"]{--oben:#2b1b1a}
+html{background:var(--oben)}   /* auch Statusleiste und Überscrollen oben in Rosé, kein harter Schnitt */
+body{background:var(--bg) linear-gradient(180deg,var(--oben) 0,color-mix(in srgb,var(--oben) 55%,var(--bg)) 160px,var(--bg) 460px) no-repeat;min-height:100vh}
 h1{font-weight:550;letter-spacing:-.015em}
 h2{text-transform:none;letter-spacing:0;font-size:14px;font-weight:550;color:var(--muted)}
 .liste,.fach,.bilanz,details.quizfach,.leer,.stelle,.karte{border:0.5px solid var(--line);box-shadow:var(--schatten)}
@@ -329,7 +334,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 8baef3</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 16b552</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
