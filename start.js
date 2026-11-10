@@ -197,7 +197,7 @@
         const name = (e && (e.name || e.message)) || 'unbekannt';
         let text;
         if (e && e.message === 'salt') text = 'Beim ersten Öffnen braucht die App einmal Internet.';
-        else if (schritt === 'Entschlüsseln' && name === 'OperationError') text = 'Das Passwort stimmt nicht.';
+        else if (schritt === 'Entschlüsseln' && name === 'OperationError') text = 'Das Passwort stimmt nicht (eingegeben: ' + feld.value.length + ' Zeichen).';
         else text = 'Technischer Fehler beim Schritt „' + schritt + '“: ' + name + (e && e.message && e.message !== name ? ' (' + e.message + ')' : '');
         sperre(text);
       }
