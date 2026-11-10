@@ -346,7 +346,7 @@ function seiteHeute(){
         const hatZettel = f.cheats.some(z => z.nr === t.nr) || f.zettel.some(z => z.nr === t.nr);
         const aktion = n ? `quizStarten(${fi}, Math.min(quizLaenge, ${n}), '${t.nr}')` : hatZettel ? `zeigeZettel(${fi}, '${t.nr}', ${f.cheats.some(z => z.nr === t.nr)})` : '';
         const hinweis = n ? `${n} Fragen` : hatZettel ? 'noch keine Fragen, Zettel öffnen' : 'noch keine Fragen';
-        return `<li style="--f:${fachFarbe(f.name)}${aktion ? ';cursor:pointer' : ''}"${aktion ? ` role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"` : ''}><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${t.naechsteWdh ? 'fällig seit ' + datumKurz(t.naechsteWdh) : 'fällig'} · <span class="pill ${t.status}">${t.status}</span> · ${hinweis}</div></span>${aktion ? '<span class="pfeil" aria-hidden="true">→</span>' : ''}</li>`;
+        return `<li style="--f:${fachFarbe(f.name)}${aktion ? ';cursor:pointer' : ''}"${aktion ? ` role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"` : ''}><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${(g => g.n ? `heute geübt: ${Math.round(g.r / g.n * 100)} % (ab 80 % erledigt)` : t.naechsteWdh ? 'fällig seit ' + datumKurz(t.naechsteWdh) : 'fällig')(heuteGeuebt(f, t))} · <span class="pill ${t.status}">${t.status}</span> · ${hinweis}</div></span>${aktion ? '<span class="pfeil" aria-hidden="true">→</span>' : ''}</li>`;
       }).join('')}</ul>`
     : '<p class="leer">Heute ist nichts fällig. Ein Quiz über alles Gelernte geht trotzdem.</p>';
   const klausuren = FAECHER.filter(f => f.klausur).map(f => tageBis(f.klausur)).filter(n => n >= 0);
@@ -357,12 +357,14 @@ function seiteHeute(){
     <h1>${new Date().toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'})}</h1>
     ${standHinweis()}
   </section>
-  ${(() => { const e = nFragen ? fachReihenfolge()[0] : null; return `<button class="haupt" type="button" onclick="runde=null;geheZu('quiz')">
-    <span>Wiederholen<small>${e ? `als Erstes dran: ${esc(e.f.kurz)} (${esc(e.grund)})` : 'noch keine Fragen vorhanden'}</small></span><span class="pfeil">→</span>
-  </button>`; })()}
+  ${(() => { const v = nFragen ? vorschlaege() : [];
+    if (!v.length) return nFragen ? `<p class="leer">Für heute ist alles wiederholt. Ein Quiz geht trotzdem: Quiz-Seite.</p>` : '<p class="leer">Noch keine Quizfragen vorhanden.</p>';
+    return `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v[0], true)}
+      ${v.length > 1 ? `<ul class="liste" style="margin-top:10px">${v.slice(1, 3).map(x => vorschlagKnopf(x)).join('')}</ul>` : ''}</section>`; })()}
+  ${nFragen ? heuteFaecherHtml() : ''}
   ${fortschrittHtml()}
   <section><h2>Fällig</h2>${faelligHtml}</section>
-  ${(l => l.length ? `<section><h2>Heute wiederholt ✓</h2><ul class="liste">${l.map(({f, t}) => { const g = heuteGeuebt(f, t); return `<li style="--f:${fachFarbe(f.name)}" class="erledigt-heute"><span class="haken ja">✓</span><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${Math.round(g.r)} von ${g.n} richtig · wird beim nächsten Abgleich in den Lernstand eingetragen</div></span></li>`; }).join('')}</ul></section>` : '')(heuteErledigtListe())}
+  ${(l => l.length ? `<section><h2>Heute geschafft ✓</h2><ul class="liste">${l.map(({f, t}) => { const g = heuteGeuebt(f, t); return `<li style="--f:${fachFarbe(f.name)}" class="erledigt-heute"><span class="haken ja">✓</span><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${Math.round(g.r)} von ${g.n} richtig · wird beim nächsten Abgleich in den Lernstand eingetragen</div></span></li>`; }).join('')}</ul></section>` : '')(heuteErledigtListe())}
   ${window.__KK ? window.__KK.einstellungenHtml() : ''}`;
 }
 
@@ -469,6 +471,58 @@ $('#leserZu').addEventListener('click', leserZu);
 /* ---------- Quiz ---------- */
 let runde = null, quizWahl = null, quizLaenge = 10;
 
+/* Heute in einem Fach geübt: Antworten (erster Versuch) von heute aus dem Verlauf, geraten zählt halb */
+function heuteFach(f){
+  let n = 0, r = 0;
+  f.fragen.forEach(q => (verlauf[q.id] || []).forEach(v => { if (isoTag(new Date(v.t)) === HEUTE) { n++; if (v.r && v.s !== false) r++; else if (v.r) r += .5; } }));
+  return {n, r, prozent: n ? Math.round(r / n * 100) : 0};
+}
+/* Was ist JETZT am sinnvollsten? Ändert sich nach jeder Runde:
+   1. fällige Themen, heute noch nicht (unter 3 Fragen) geübt   2. wackelige Themen, heute noch nicht geübt
+   3. fällige Themen, heute geübt aber unter 80 %             4. Fächer, die heute noch gar nicht dran waren (gemischt) */
+function imPlanHeute(f){
+  const heute = (D.plan || []).find(t => t.datum === HEUTE);
+  const offen = heute ? heute.punkte.filter(p => !p.erledigt).map(p => p.text) : [];
+  const wort = new RegExp('(^|[^A-Za-zÄÖÜäöü])' + f.kurz + '([^A-Za-zÄÖÜäöü]|$)', 'i');
+  return offen.some(t => wort.test(t) && /wdh|wiederhol|abfrag|auffrisch/i.test(t));
+}
+function vorschlaege(){
+  const l = [];
+  FAECHER.forEach((f, fi) => {
+    const tage = f.klausur ? tageBis(f.klausur) : 999, klausurDruck = Math.max(0, 100 - tage) / 10 + (imPlanHeute(f) && !heuteFach(f).n ? 50 : 0);
+    f.themen.forEach(t => {
+      const anzahl = f.fragen.filter(q => q.nr === t.nr).length;
+      if (!anzahl) return;
+      const g = heuteGeuebt(f, t), faellig = istFaellig(f, t), seit = t.naechsteWdh ? -tageBis(t.naechsteWdh) : 0;
+      if (faellig && g.n < 3) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 300 + seit * 5 + klausurDruck, grund: (t.naechsteWdh ? `fällig seit ${datumKurz(t.naechsteWdh)}` : 'fällig') + (imPlanHeute(f) && !heuteFach(f).n ? ' · laut Plan heute dran' : '')});
+      else if (t.status === 'wackelig' && g.n < 3 && !faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 200 + klausurDruck, grund: 'wackelig'});
+      else if (faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 100 + klausurDruck - g.n, grund: `heute ${Math.round(g.r / g.n * 100)} %, noch einmal festigen`});
+    });
+    if (f.fragen.length && !heuteFach(f).n) l.push({fi, f, nr: null, anzahl: f.fragen.length, punkte: 50 + klausurDruck, grund: 'heute noch nicht wiederholt, gemischt'});
+  });
+  return l.sort((a, b) => b.punkte - a.punkte);
+}
+function vorschlagKnopf(v, haupt){
+  const n = v.nr ? `Math.min(quizLaenge, ${v.anzahl})` : 'quizLaenge';
+  const aktion = `quizStarten(${v.fi}, ${n}${v.nr ? `, '${v.nr}'` : ''})`;
+  const titel = v.nr ? `${v.f.kurz} ${v.nr} · ${v.t.titel}` : `${v.f.name} gemischt`;
+  return haupt
+    ? `<button class="haupt" type="button" onclick="${aktion}"><span>${esc(titel)}<small>${esc(v.grund)}</small></span><span class="pfeil">→</span></button>`
+    : `<li style="--f:${fachFarbe(v.f.name)};cursor:pointer" role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"><span class="tag">${esc(v.f.kurz)}${v.nr ? ' ' + esc(v.nr) : ''}</span><span class="txt">${esc(v.nr ? v.t.titel : 'gemischt')}<div class="klein">${esc(v.grund)}</div></span><span class="pfeil" aria-hidden="true">→</span></li>`;
+}
+/* Startseite: pro Fach, ob heute schon wiederholt, und was dort noch offen ist */
+function heuteFaecherHtml(){
+  const zeilen = fachReihenfolge().map(x => {
+    const h = x.heute;
+    const status = h.n ? `<span class="haken ja">✓</span>` : `<span class="haken"></span>`;
+    const text = h.n ? `heute ${h.n} ${h.n === 1 ? 'Frage' : 'Fragen'} · ${h.prozent} % richtig` : 'heute noch nicht wiederholt';
+    const offen = x.offen ? `<span class="countdown warn">${x.offen} fällig</span>` : x.faellig ? `<span class="pill wackelig">festigen</span>` : h.n ? `<span class="pill sicher">erledigt</span>` : '';
+    return `<li style="--f:${fachFarbe(x.f.name)};cursor:pointer" role="button" tabindex="0" onclick="quizOffen=new Set([${x.fi}]);runde=null;geheZu('quiz')" onkeydown="if(event.key==='Enter'){quizOffen=new Set([${x.fi}]);runde=null;geheZu('quiz')}">
+      ${status}<span class="tag">${esc(x.f.kurz)}</span><span class="txt">${esc(x.f.name)} ${offen}<div class="klein">${text}</div></span><span class="pfeil" aria-hidden="true">→</span></li>`;
+  }).join('');
+  return `<section><h2>Heute wiederholt</h2><ul class="liste">${zeilen}</ul></section>`;
+}
+
 /* Welches Fach ist als Erstes dran? Plan von heute (offene Wiederholung) > fällige Themen > wackelige Themen > nächste Klausur */
 function fachReihenfolge(){
   const heute = (D.plan || []).find(t => t.datum === HEUTE);
@@ -477,13 +531,16 @@ function fachReihenfolge(){
     const wort = new RegExp('(^|[^A-Za-zÄÖÜäöü])' + f.kurz + '([^A-Za-zÄÖÜäöü]|$)', 'i');
     const imPlan = offen.some(t => wort.test(t) && /wdh|wiederhol|abfrag|auffrisch/i.test(t));
     const faellig = f.themen.filter(t => istFaellig(f, t));
+    const offenF = faellig.filter(t => heuteGeuebt(f, t).n < 3);          // fällig und heute noch nicht angefasst
     const wackelig = f.themen.filter(t => t.status === 'wackelig').length;
     const tage = f.klausur ? tageBis(f.klausur) : 999;
-    const punkte = (imPlan ? 1000 : 0) + faellig.length * 100 + wackelig * 10 + Math.max(0, 100 - tage) / 10;
-    const grund = imPlan ? 'laut Plan heute dran' + (faellig.length ? ` · ${faellig.length} fällig` : '')
-      : faellig.length ? `${faellig.length} ${faellig.length === 1 ? 'Thema' : 'Themen'} fällig`
-      : wackelig ? `${wackelig} wackelig, nichts fällig` : 'nichts fällig';
-    return {fi, f, punkte, grund, faellig: faellig.length};
+    const h = heuteFach(f);
+    const punkte = (imPlan && !h.n ? 1000 : 0) + offenF.length * 100 + (faellig.length - offenF.length) * 15 + wackelig * 10
+      + Math.max(0, 100 - tage) / 10 - Math.min(h.n, 20) * 3;
+    const grund = offenF.length ? `${offenF.length} ${offenF.length === 1 ? 'Thema' : 'Themen'} fällig`
+      : faellig.length ? `heute geübt, ${faellig.length} noch nicht sicher`
+      : h.n ? 'Fälliges erledigt' : wackelig ? `${wackelig} wackelig, nichts fällig` : 'nichts fällig';
+    return {fi, f, punkte, grund, faellig: faellig.length, offen: offenF.length, heute: h};
   }).filter(x => x.f.fragen.length).sort((a, b) => b.punkte - a.punkte);
 }
 
@@ -584,9 +641,7 @@ function seiteQuiz(){
   return `<section><h1>Quiz</h1><p class="sub">Eine Runde, ein Fach. Nur Wiederholung zu Themen, die du schon gelernt hast. Fälliges und alte Fehler kommen zuerst, was du falsch hast, kommt am Ende der Runde noch einmal.</p></section>
   ${erstes ? `
   <section><h2>Länge</h2><div class="chips">${laengen}</div></section>
-  <section><h2>Als Erstes dran</h2>
-    <button class="haupt" type="button" onclick="quizStarten(${erstes.fi}, quizLaenge)"><span>${esc(erstes.f.name)}<small>${esc(erstes.grund)} · ${erstes.f.fragen.length} Fragen im Vorrat</small></span><span class="pfeil">→</span></button>
-  </section>
+  ${(v => v ? `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v, true)}</section>` : '')(vorschlaege()[0])}
   <section><h2>Fächer und Themen</h2><p class="sub">Fach antippen, dann ein einzelnes Thema wählen oder das ganze Fach gemischt.</p>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
@@ -918,7 +973,8 @@ function quizEnde(){
   ${falsche.length ? `<section><h2>Noch mal anschauen</h2><ul class="liste">${falsche.map(({q, a}) => `<li style="--f:${fachFarbe(q.fach)}"><span class="tag">${esc(q.kurz)} ${esc(q.nr)}</span><span class="txt">${mitLuecke(quizText(q.frage))}${a.sicher ? ' <span class="pill wackelig">war sicher</span>' : ''}<div class="klein">${quizText(q.erklaerung || '')}</div></span></li>`).join('')}</ul></section>` : '<p class="leer">Alles im ersten Versuch richtig. Diese Fragen kommen erst in ein paar Tagen wieder.</p>'}
   <p class="sub">${gesichert}</p>
   ${r.gespeichert === 'ok' ? '' : `<textarea class="kopie" id="kopieNeu" readonly>${esc(rundeAlsText(rundeDaten()))}</textarea><button class="zweit" type="button" onclick="kopieren('kopieNeu')">Text kopieren</button>`}
-  <button class="haupt" type="button" onclick="quizStarten(quizWahl, quizLaenge)"><span>Noch eine Runde<small>${esc(FAECHER[quizWahl]?.name || '')}${quizThema ? ', ganzes Fach' : ''}</small></span><span class="pfeil">↻</span></button>
+  ${(v => v ? `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v, true)}</section>` : '<p class="leer">Für heute ist alles Fällige wiederholt.</p>')(vorschlaege()[0])}
+  <button class="zweit" type="button" style="width:100%" onclick="quizStarten(quizWahl, quizLaenge)">Noch eine Runde: ${esc(FAECHER[quizWahl]?.name || '')}${quizThema ? ' gemischt' : ''}</button>
   <div class="reihe"><button class="zweit" type="button" onclick="runde=null;render();window.scrollTo(0,0)">Anderes Fach wählen</button>
   <button class="zweit" type="button" onclick="runde=null;geheZu('heute')">Zurück zu Heute</button></div>`;
 }
