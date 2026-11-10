@@ -336,6 +336,10 @@ main{padding-top:18px}
 :root[data-theme="dark"]{--bg:#1e1e1e; --oben:#2a2523; --muted:#9a9ca1; --line:#363434}
 h1{font-weight:750}
 .bilanz-zahlen b{font-weight:750}
+:root{--accent:#6e1f2f; --accent-ink:#6e1f2f; --accent-soft:#f1e2e3}
+.tag{color:color-mix(in srgb,var(--f,var(--accent)) 92%,var(--ink));background:color-mix(in srgb,var(--f,var(--accent)) 16%,transparent)}
+.fachsprung .chip{color:var(--f);border-color:color-mix(in srgb,var(--f) 60%,var(--line));border-width:1px}
+.fach::before{height:5px}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -380,7 +384,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version cb0512</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version c92f7d</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
