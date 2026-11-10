@@ -284,9 +284,42 @@ function heuteErledigtListe(){
 /* Verlauf: pro Frage die letzten Antworten (aus diesem Browser und aus der Datenbank) */
 let verlauf = speicher.get('verlauf', {});
 function merkeAntwort(id, richtig, zeit, sicher){
-  (verlauf[id] = verlauf[id] || []).push({t: zeit, r: richtig, s: sicher});
+  (verlauf[id] = verlauf[id] || []).push({t: zeit, r: richtig, s: sicher, rid: runde ? runde.id : undefined});
   verlauf[id] = verlauf[id].slice(-5);
 }
+
+/* Runden vom Mac (Briefkasten-Archiv) einmischen: Nach einer Neuinstallation der App
+   kommen so Verlauf, „Meine Runden“, „Heute“ und „Tage in Folge“ zurück. Doppeltes wird erkannt. */
+(() => {
+  const runden = (D && D.runden) || [];
+  if (!runden.length) return;
+  const meine = speicher.get('meineRunden', []);
+  let geaendert = false;
+  runden.forEach(r => {
+    if (!meine.some(x => x.id === r.id)) {
+      const a = r.antworten || [];
+      meine.push({id: r.id, start: r.start, wahl: r.wahl, n: a.length, richtig: a.filter(x => x.richtig).length,
+        themen: [...new Set(a.map(x => x.nr))].sort(), ok: true,
+        fragen: a.map(x => ({id: x.id, r: x.richtig, s: x.sicher, w: x.eingabe ?? null, t: !!x.tippfehler}))});
+      geaendert = true;
+    }
+    (r.antworten || []).forEach(x => {
+      const l = verlauf[x.id] = verlauf[x.id] || [];
+      // schon da? gleiche Runde (rid) oder eine lokale Antwort aus dem Zeitraum dieser Runde
+      const bis = new Date(new Date(r.ende || r.start).getTime() + 60000).toISOString();
+      if (l.some(v => v.rid === r.id || v.t === r.start || (String(v.t) >= String(r.start) && String(v.t) <= bis))) return;
+      l.push({t: r.start, r: x.richtig, s: x.sicher, rid: r.id});
+      l.sort((p, q) => String(p.t).localeCompare(String(q.t)));
+      verlauf[x.id] = l.slice(-5);
+      geaendert = true;
+    });
+  });
+  if (geaendert) {
+    meine.sort((p, q) => String(p.start).localeCompare(String(q.start)));
+    speicher.set('meineRunden', meine.slice(-300));
+    speicher.set('verlauf', verlauf);
+  }
+})();
 
 /* ---------- Datenbank (nur im Artifact, sonst null) ---------- */
 let db = null, dbStatus = 'pruefe';
