@@ -360,10 +360,9 @@ function seiteHeute(){
   ${(() => { const v = nFragen ? vorschlaege() : [];
     if (!v.length) return nFragen ? `<p class="leer">Für heute ist alles wiederholt. Ein Quiz geht trotzdem: Quiz-Seite.</p>` : '<p class="leer">Noch keine Quizfragen vorhanden.</p>';
     return `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v[0], true)}
-      ${v.length > 1 ? `<ul class="liste" style="margin-top:10px">${v.slice(1, 3).map(x => vorschlagKnopf(x)).join('')}</ul>` : ''}</section>`; })()}
+      ${v.length > 1 ? `<ul class="liste" style="margin-top:10px">${v.slice(1, 3).map(x => vorschlagKnopf(x)).join('')}</ul>` : ''}
+      ${v.length > 3 ? `<details class="schw"><summary>${v.length - 3} weitere Vorschläge</summary><ul class="liste" style="margin-top:6px">${v.slice(3).map(x => vorschlagKnopf(x)).join('')}</ul></details>` : ''}</section>`; })()}
   ${nFragen ? heuteFaecherHtml() : ''}
-  ${fortschrittHtml()}
-  <section><h2>Fällig</h2>${faelligHtml}</section>
   ${(l => l.length ? `<section><h2>Heute geschafft ✓</h2><ul class="liste">${l.map(({f, t}) => { const g = heuteGeuebt(f, t); return `<li style="--f:${fachFarbe(f.name)}" class="erledigt-heute"><span class="haken ja">✓</span><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${Math.round(g.r)} von ${g.n} richtig · wird beim nächsten Abgleich in den Lernstand eingetragen</div></span></li>`; }).join('')}</ul></section>` : '')(heuteErledigtListe())}
   ${window.__KK ? window.__KK.einstellungenHtml() : ''}`;
 }
@@ -392,7 +391,9 @@ function fortschrittHtml(){
 // Themenlisten sind eingeklappt; was aufgeklappt wurde, bleibt es bis zum Neuladen.
 const offeneFaecher = new Set();
 function seiteFaecher(){
-  return `<section><h1>Fächer</h1>${standHinweis()}</section>` + FAECHER.map((f, fi) => {
+  const alle = FAECHER.reduce((n, f) => n + f.themen.length, 0);
+  const gel = FAECHER.reduce((n, f) => n + f.themen.filter(t => ['sicher', 'gelernt', 'wackelig'].includes(t.status)).length, 0);
+  return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %)</p>${standHinweis()}</section>` + FAECHER.map((f, fi) => {
     const n = f.themen.length || 1;
     const zahl = s => f.themen.filter(t => t.status === s).length;
     const bar = ['sicher', 'gelernt', 'wackelig'].map(s => `<span style="width:${zahl(s) / n * 100}%;background:var(--${s})"></span>`).join('');
@@ -400,7 +401,7 @@ function seiteFaecher(){
     const themen = f.themen.map(t => `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}</span><span class="pill ${t.status}">${t.status}</span></li>`).join('');
     const schw = f.schwaechen.length ? `<details class="schw"><summary>${f.schwaechen.length} Schwächen</summary><ul>${f.schwaechen.map(s => `<li>[${esc(s.nr)}] ${inline(s.text)}</li>`).join('')}</ul></details>` : '';
     return `<article class="fach" style="--f:${fachFarbe(f.name)}">
-      <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${zahl('sicher') + zahl('gelernt') + zahl('wackelig')} von ${f.themen.length} Themen gelernt · ${zahl('wackelig')} wackelig</div></div>
+      <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${zahl('sicher') + zahl('gelernt') + zahl('wackelig')} von ${f.themen.length} Themen gelernt (${Math.round((zahl('sicher') + zahl('gelernt') + zahl('wackelig')) / n * 100)} %) · ${zahl('wackelig')} wackelig</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>
       <details class="schw themenauf"${offeneFaecher.has(fi) ? ' open' : ''} ontoggle="this.open ? offeneFaecher.add(${fi}) : offeneFaecher.delete(${fi})">
@@ -492,7 +493,11 @@ function vorschlaege(){
     const tage = f.klausur ? tageBis(f.klausur) : 999, klausurDruck = Math.max(0, 100 - tage) / 10 + (imPlanHeute(f) && !heuteFach(f).n ? 50 : 0);
     f.themen.forEach(t => {
       const anzahl = f.fragen.filter(q => q.nr === t.nr).length;
-      if (!anzahl) return;
+      if (!anzahl) {
+        const zettel = f.cheats.some(z => z.nr === t.nr) || f.zettel.some(z => z.nr === t.nr);
+        if (istFaellig(f, t) && zettel) l.push({fi, f, nr: t.nr, t, anzahl: 0, punkte: 90, grund: 'fällig, noch keine Quizfragen: Zettel lesen', zettel: true, kurz: f.cheats.some(z => z.nr === t.nr)});
+        return;
+      }
       const g = heuteGeuebt(f, t), faellig = istFaellig(f, t), seit = t.naechsteWdh ? -tageBis(t.naechsteWdh) : 0;
       if (faellig && g.n < 3) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 300 + seit * 5 + klausurDruck, grund: (t.naechsteWdh ? `fällig seit ${datumKurz(t.naechsteWdh)}` : 'fällig') + (imPlanHeute(f) && !heuteFach(f).n ? ' · laut Plan heute dran' : '')});
       else if (t.status === 'wackelig' && g.n < 3 && !faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 200 + klausurDruck, grund: 'wackelig'});
@@ -504,7 +509,7 @@ function vorschlaege(){
 }
 function vorschlagKnopf(v, haupt){
   const n = v.nr ? `Math.min(quizLaenge, ${v.anzahl})` : 'quizLaenge';
-  const aktion = `quizStarten(${v.fi}, ${n}${v.nr ? `, '${v.nr}'` : ''})`;
+  const aktion = v.zettel ? `zeigeZettel(${v.fi}, '${v.nr}', ${v.kurz})` : `quizStarten(${v.fi}, ${n}${v.nr ? `, '${v.nr}'` : ''})`;
   const titel = v.nr ? `${v.f.kurz} ${v.nr} · ${v.t.titel}` : `${v.f.name} gemischt`;
   return haupt
     ? `<button class="haupt" type="button" onclick="${aktion}"><span>${esc(titel)}<small>${esc(v.grund)}</small></span><span class="pfeil">→</span></button>`
