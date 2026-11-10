@@ -306,10 +306,10 @@ let db = null, dbStatus = 'pruefe';
 })();
 
 /* ---------- Seitenwahl ---------- */
-let seite = 'heute';
+var seite = 'heute';   // var: die Datenbank-Abfrage oben liest sie evtl. schon vorher
 function seiteAusHash(){
   const h = location.hash.replace('#', '');
-  seite = ['heute', 'quiz', 'faecher', 'zettel'].includes(h) ? h : 'heute';
+  seite = h === 'zettel' ? 'faecher' : ['heute', 'quiz', 'faecher', 'einstellungen'].includes(h) ? h : 'heute';
   document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.s === seite ? 'page' : 'false'));
   render();
   window.scrollTo(0, 0);
@@ -326,7 +326,7 @@ function standHinweis(){
 function render(){
   const app = $('#app');
   if (!D) { app.innerHTML = '<section><h1>Keine Daten</h1><p class="sub">Am Mac „Handy aktualisieren“ sagen.</p></section>'; return; }
-  app.innerHTML = ({heute: seiteHeute, quiz: seiteQuiz, faecher: seiteFaecher, zettel: seiteZettel})[seite]();
+  app.innerHTML = ({heute: seiteHeute, quiz: seiteQuiz, faecher: seiteFaecher, einstellungen: seiteEinstellungen})[seite]();
 }
 
 /* ---------- Heute ---------- */
@@ -364,7 +364,7 @@ function seiteHeute(){
       ${v.length > 3 ? `<details class="schw"><summary>${v.length - 3} weitere Vorschläge</summary><ul class="liste" style="margin-top:6px">${v.slice(3).map(x => vorschlagKnopf(x)).join('')}</ul></details>` : ''}</section>`; })()}
   ${nFragen ? heuteFaecherHtml() : ''}
   ${(l => l.length ? `<section><h2>Heute geschafft ✓</h2><ul class="liste">${l.map(({f, t}) => { const g = heuteGeuebt(f, t); return `<li style="--f:${fachFarbe(f.name)}" class="erledigt-heute"><span class="haken ja">✓</span><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${Math.round(g.r)} von ${g.n} richtig · wird beim nächsten Abgleich in den Lernstand eingetragen</div></span></li>`; }).join('')}</ul></section>` : '')(heuteErledigtListe())}
-  ${window.__KK ? window.__KK.einstellungenHtml() : ''}`;
+`;
 }
 
 /* Fortschritt pro Fach: ein Balken je Fach (sicher, gelernt, wackelig, offen), Tipp öffnet die Fächer-Seite */
@@ -387,72 +387,80 @@ function fortschrittHtml(){
     <div class="legende">${STUFEN.map(([s, l]) => `<span><i style="background:var(--${s})"></i>${l}</span>`).join('')}</div></section>`;
 }
 
-/* ---------- Fächer ---------- */
+/* ---------- Fächer (mit Lernzetteln) ---------- */
 // Themenlisten sind eingeklappt; was aufgeklappt wurde, bleibt es bis zum Neuladen.
 const offeneFaecher = new Set();
+let zettelSuche = '';
 function seiteFaecher(){
   const alle = FAECHER.reduce((n, f) => n + f.themen.length, 0);
   const gel = FAECHER.reduce((n, f) => n + f.themen.filter(t => ['sicher', 'gelernt', 'wackelig'].includes(t.status)).length, 0);
-  return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %)</p>${standHinweis()}</section>` + FAECHER.map((f, fi) => {
+  return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %) · Thema aufklappen für Lernzettel („Lang“) und Cheat Sheet („Kurz“)</p></section>
+  <input class="suche" id="suche" type="search" placeholder="In allen Lernzetteln suchen" value="${esc(zettelSuche)}" oninput="zettelSuche=this.value;fachInhalt()" autocomplete="off">
+  <div id="fachinhalt">${fachInhaltHtml()}</div>`;
+}
+function fachInhalt(){ $('#fachinhalt').innerHTML = fachInhaltHtml(); }
+function fachInhaltHtml(){
+  if (zettelSuche.trim()) return zettelTrefferHtml();
+  return FAECHER.map((f, fi) => {
     const n = f.themen.length || 1;
     const zahl = s => f.themen.filter(t => t.status === s).length;
+    const gel = zahl('sicher') + zahl('gelernt') + zahl('wackelig');
     const bar = ['sicher', 'gelernt', 'wackelig'].map(s => `<span style="width:${zahl(s) / n * 100}%;background:var(--${s})"></span>`).join('');
     const tage = f.klausur ? tageBis(f.klausur) : null;
-    const themen = f.themen.map(t => `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}</span><span class="pill ${t.status}">${t.status}</span></li>`).join('');
+    const themen = f.themen.map(t => {
+      const z = f.zettel.some(x => x.nr === t.nr), c = f.cheats.some(x => x.nr === t.nr);
+      return `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}
+        ${z || c ? `<span class="tknoepfe">${c ? `<button class="mini-knopf" type="button" onclick="zeigeZettel(${fi},'${t.nr}',true)">Kurz</button>` : ''}${z ? `<button class="mini-knopf" type="button" onclick="zeigeZettel(${fi},'${t.nr}',false)">Lang</button>` : ''}</span>` : ''}</span>
+        <span class="pill ${t.status}">${t.status}</span></li>`;
+    }).join('');
     const schw = f.schwaechen.length ? `<details class="schw"><summary>${f.schwaechen.length} Schwächen</summary><ul>${f.schwaechen.map(s => `<li>[${esc(s.nr)}] ${inline(s.text)}</li>`).join('')}</ul></details>` : '';
+    const nF = f.themen.filter(t => istFaellig(f, t)).length, nZ = new Set([...f.zettel, ...f.cheats].map(z => z.nr)).size;
     return `<article class="fach" style="--f:${fachFarbe(f.name)}">
-      <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${zahl('sicher') + zahl('gelernt') + zahl('wackelig')} von ${f.themen.length} Themen gelernt (${Math.round((zahl('sicher') + zahl('gelernt') + zahl('wackelig')) / n * 100)} %) · ${zahl('wackelig')} wackelig</div></div>
+      <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %) · ${zahl('wackelig')} wackelig</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>
       <details class="schw themenauf"${offeneFaecher.has(fi) ? ' open' : ''} ontoggle="this.open ? offeneFaecher.add(${fi}) : offeneFaecher.delete(${fi})">
-        <summary>${f.themen.length} Themen${(n => n ? ` · ${n} fällig` : '')(f.themen.filter(t => istFaellig(f, t)).length)}</summary>
+        <summary>${f.themen.length} Themen${nF ? ` · ${nF} fällig` : ''}${nZ ? ` · ${nZ} mit Zettel` : ''}</summary>
         <ul class="themen">${themen}</ul>
       </details>
       ${schw}
       <div class="reihe">
-        <button class="zweit" type="button" onclick="quizStarten(${fi}, 10)"${f.fragen.length ? '' : ' disabled'}>Quiz (${f.fragen.length} Fragen)</button>
-        <button class="zweit" type="button" onclick="zettelFach=${fi};geheZu('zettel')">Lernzettel</button>
+        <button class="zweit" type="button" onclick="quizOffen=new Set([${fi}]);runde=null;geheZu('quiz')"${f.fragen.length ? '' : ' disabled'}>Quiz (${f.fragen.length} Fragen)</button>
       </div>
     </article>`;
   }).join('');
 }
-
-/* ---------- Zettel ---------- */
-let zettelFach = 0, zettelSuche = '';
-function seiteZettel(){
-  const chips = FAECHER.map((f, i) => `<button class="chip" type="button" aria-pressed="${i === zettelFach}" onclick="zettelFach=${i};render()">${esc(f.kurz)}</button>`).join('');
-  return `<section><h1>Nachschlagen</h1><p class="sub">Lernzettel und Cheat Sheets aller gelernten Themen.</p></section>
-  <input class="suche" id="suche" type="search" placeholder="In Lernzetteln suchen" value="${esc(zettelSuche)}" oninput="zettelSuche=this.value;zettelListe()" autocomplete="off">
-  <div class="chips" id="zchips"${zettelSuche ? ' hidden' : ''}>${chips}</div>
-  <div id="zliste">${zettelListeHtml()}</div>`;
-}
-function zettelListe(){ $('#zliste').innerHTML = zettelListeHtml(); $('#zchips').hidden = !!zettelSuche.trim(); }
-function zettelListeHtml(){
+function zettelTrefferHtml(){
   const q = zettelSuche.trim().toLowerCase();
   const eintraege = [];
   FAECHER.forEach((f, fi) => {
-    if (!q && fi !== zettelFach) return;
     const nrs = [...new Set([...f.zettel.map(z => z.nr), ...f.cheats.map(z => z.nr)])].sort();
     nrs.forEach(nr => {
       const z = f.zettel.find(x => x.nr === nr), c = f.cheats.find(x => x.nr === nr);
       const titel = (z || c).titel;
+      const quelle = (z ? z.text : '') + '\n' + (c ? c.text : '');
+      const pos = quelle.toLowerCase().indexOf(q);
+      if (pos < 0 && !titel.toLowerCase().includes(q)) return;
       let treffer = '';
-      if (q) {
-        const quelle = (z ? z.text : '') + '\n' + (c ? c.text : '');
-        const pos = quelle.toLowerCase().indexOf(q);
-        if (pos < 0 && !titel.toLowerCase().includes(q)) return;
-        if (pos >= 0) {
-          const a = Math.max(0, pos - 40), stueck = quelle.slice(a, pos + q.length + 60).replace(/[#>*`|]/g, ' ').replace(/\s+/g, ' ');
-          const p = stueck.toLowerCase().indexOf(q);
-          treffer = `<div class="treffer">…${esc(stueck.slice(0, p))}<mark>${esc(stueck.slice(p, p + q.length))}</mark>${esc(stueck.slice(p + q.length))}…</div>`;
-        }
+      if (pos >= 0) {
+        const a = Math.max(0, pos - 40), stueck = quelle.slice(a, pos + q.length + 60).replace(/[#>*`|]/g, ' ').replace(/\s+/g, ' ');
+        const p = stueck.toLowerCase().indexOf(q);
+        treffer = `<div class="treffer">…${esc(stueck.slice(0, p))}<mark>${esc(stueck.slice(p, p + q.length))}</mark>${esc(stueck.slice(p + q.length))}…</div>`;
       }
       eintraege.push(`<li style="--f:${fachFarbe(f.name)}"><span class="tag">${esc(f.kurz)} ${nr}</span><span class="txt">${esc(titel.replace(/^\d+\s*/, ''))}${treffer}</span>
         <span class="knoepfe">${c ? `<button class="zweit" type="button" onclick="zeigeZettel(${fi},'${nr}',true)">Kurz</button>` : ''}${z ? `<button class="zweit" type="button" onclick="zeigeZettel(${fi},'${nr}',false)">Lang</button>` : ''}</span></li>`);
     });
   });
-  return eintraege.length ? `<ul class="liste zl">${eintraege.join('')}</ul>` : `<p class="leer">${q ? 'Nichts gefunden.' : 'Für dieses Fach gibt es noch keine Lernzettel.'}</p>`;
+  return eintraege.length ? `<ul class="liste zl">${eintraege.join('')}</ul>` : '<p class="leer">Nichts gefunden.</p>';
 }
+
+/* ---------- Einstellungen ---------- */
+function seiteEinstellungen(){
+  return `<section><h1>Einstellungen</h1>${standHinweis()}</section>
+  ${window.__KK ? window.__KK.einstellungenHtml()
+    : `<section><h2>App</h2><p class="sub">${dbStatus === 'ok' ? 'Verbunden: Ergebnisse werden gespeichert und beim nächsten Chat am Mac übernommen.' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende einer Runde kannst du sie kopieren.'}</p></section>`}`;
+}
+
 let leserScroll = 0;
 function zeigeZettel(fi, nr, kurz){
   const f = FAECHER[fi];
