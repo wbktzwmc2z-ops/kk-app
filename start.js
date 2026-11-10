@@ -83,8 +83,8 @@
     if (!buf) throw new Error('keine-daten');
     const iv = new Uint8Array(buf, 0, 12), ct = new Uint8Array(buf, 12);
     const klar = await crypto.subtle.decrypt({name: 'AES-GCM', iv}, schluessel, ct);
-    const text = await new Response(new Blob([klar]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    return JSON.parse(text);
+    // ungepackt (kein DecompressionStream nötig, läuft auch auf älteren iPhones)
+    return JSON.parse(new TextDecoder().decode(klar));
   }
 
   /* ---------- Sperrbildschirm ---------- */
@@ -178,14 +178,28 @@
       const feld = $('#kkPasswort'), knopf = $('#schlossKnopf');
       if (!feld.value) return;
       knopf.disabled = true; knopf.textContent = 'Wird geöffnet …';
+      $('#schlossMeldung').hidden = true;
+      // Schritt für Schritt, damit eine Fehlermeldung sagt, wo es hängt
+      let schritt = 'Schlüssel berechnen';
       try {
-        const k = await schluesselAus(feld.value);
+        const k = await schluesselAus(feld.value.normalize('NFC'));
+        schritt = 'Entschlüsseln';
         const daten = await entschluesseln(k);
-        if ($('#kkMerken').checked) await lege('schluessel', k);
+        schritt = 'Merken';
+        if ($('#kkMerken').checked) {
+          try { await lege('schluessel', k); }
+          catch (e) { alertLeise('Merken geht in diesem Browser nicht, die App fragt beim nächsten Mal wieder.'); }
+        }
+        schritt = 'Starten';
         feld.value = '';
-        starten(daten);
+        await starten(daten);
       } catch (e) {
-        sperre(e && e.message === 'salt' ? 'Beim ersten Öffnen braucht die App einmal Internet.' : 'Das Passwort stimmt nicht.');
+        const name = (e && (e.name || e.message)) || 'unbekannt';
+        let text;
+        if (e && e.message === 'salt') text = 'Beim ersten Öffnen braucht die App einmal Internet.';
+        else if (schritt === 'Entschlüsseln' && name === 'OperationError') text = 'Das Passwort stimmt nicht.';
+        else text = 'Technischer Fehler beim Schritt „' + schritt + '“: ' + name + (e && e.message && e.message !== name ? ' (' + e.message + ')' : '');
+        sperre(text);
       }
       knopf.disabled = false; knopf.textContent = 'Öffnen';
     });

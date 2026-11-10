@@ -1,7 +1,7 @@
 /* Service Worker: hält die App-Dateien auf dem Handy, damit sie offline startet.
    App-Dateien: aus dem Speicher liefern und im Hintergrund erneuern.
    Daten (daten.enc) und version.json laufen NICHT hierüber, die verwaltet start.js selbst. */
-const SPEICHER = 'kk-app-v1';
+const SPEICHER = 'kk-app-v2';
 const DATEIEN = ['./', 'index.html', 'start.js', 'salt.json', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
