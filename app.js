@@ -397,23 +397,23 @@ function seiteFaecher(){
   const gel = FAECHER.reduce((n, f) => n + f.themen.filter(t => ['sicher', 'gelernt', 'wackelig'].includes(t.status)).length, 0);
   return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %) </p></section>
   <input class="suche" id="suche" type="search" placeholder="In allen Lernzetteln suchen" value="${esc(zettelSuche)}" oninput="zettelSuche=this.value;fachInhalt()" autocomplete="off">
-  <div class="chips fachsprung">${FAECHER.map((f, fi) => `<button class="chip" type="button" style="--f:${fachFarbe(f.name)}" onclick="springeZuFach(${fi})">${esc(f.kurz)}</button>`).join('')}</div>
+  <div class="chips fachsprung">${FAECHER.map((f, fi) => `<button class="chip" type="button" style="--f:${fachFarbe(f.name)}" aria-pressed="${fachAuswahl === fi}" onclick="springeZuFach(${fi})">${esc(f.kurz)}</button>`).join('')}</div>
   <div id="fachinhalt" class="fachliste">${fachInhaltHtml()}</div>`;
 }
 /* Schnellwahl oben: zum Fach springen und seine Lernzettel aufklappen */
+let fachAuswahl = null;   // Schnellwahl: nur dieses Fach zeigen (direkt unter den Kürzeln), null = alle
 function springeZuFach(fi){
-  if (zettelSuche.trim()) { zettelSuche = ''; $('#suche').value = ''; fachInhalt(); }
-  offeneFaecher.add(fi + 'z');
-  const karte = $('#fach-' + fi);
-  if (!karte) return;
-  const teil = karte.querySelector('details.fachteil');
-  if (teil) teil.open = true;
-  karte.scrollIntoView({behavior: 'smooth', block: 'start'});
+  if (zettelSuche.trim()) { zettelSuche = ''; $('#suche').value = ''; }
+  fachAuswahl = fachAuswahl === fi ? null : fi;      // nochmal antippen = wieder alle
+  if (fachAuswahl !== null) offeneFaecher.add(fi + 'z');
+  document.querySelectorAll('.fachsprung .chip').forEach((c, i) => c.setAttribute('aria-pressed', i === fachAuswahl));
+  fachInhalt();
 }
 function fachInhalt(){ $('#fachinhalt').innerHTML = fachInhaltHtml(); }
 function fachInhaltHtml(){
   if (zettelSuche.trim()) return zettelTrefferHtml();
   return FAECHER.map((f, fi) => {
+    if (fachAuswahl !== null && fi !== fachAuswahl) return '';
     const n = f.themen.length || 1;
     const zahl = s => f.themen.filter(t => t.status === s).length;
     const gel = zahl('sicher') + zahl('gelernt') + zahl('wackelig');
