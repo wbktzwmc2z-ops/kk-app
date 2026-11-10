@@ -541,6 +541,39 @@ function quizStarten(wahl, n, nr){
   geheZu('quiz');
 }
 
+/* Stand eines Themas aus dem Verlauf: wie viele Fragen schon gesehen, wann zuletzt geübt, Ergebnis an dem Tag */
+function themaStand(f, t){
+  const qs = f.fragen.filter(q => q.nr === t.nr);
+  let gesehen = 0, zuletzt = null;
+  qs.forEach(q => { const v = verlauf[q.id] || []; if (v.length) gesehen++; v.forEach(x => { const d = isoTag(new Date(x.t)); if (!zuletzt || d > zuletzt) zuletzt = d; }); });
+  let n = 0, r = 0;
+  if (zuletzt) qs.forEach(q => (verlauf[q.id] || []).forEach(x => { if (isoTag(new Date(x.t)) === zuletzt) { n++; if (x.r) r++; } }));
+  return {anzahl: qs.length, gesehen, zuletzt, n, r};
+}
+const tagWort = d => d === HEUTE ? 'heute' : d === isoTag(new Date(Date.now() - 864e5)) ? 'gestern' : 'am ' + datumKurz(d);
+let quizOffen = null;   // aufgeklappte Fächer auf der Quiz-Seite (bis zum Neuladen)
+function quizFachHtml(x){
+  const {f, fi} = x;
+  if (!quizOffen) quizOffen = new Set([fachReihenfolge()[0]?.fi]);
+  const rang = t => istFaellig(f, t) ? 0 : t.status === 'wackelig' ? 1 : 2;
+  const themen = f.themen.filter(t => f.fragen.some(q => q.nr === t.nr) || istFaellig(f, t))
+    .sort((a, b) => rang(a) - rang(b) || String(a.nr).localeCompare(String(b.nr)));
+  const zeilen = themen.map(t => {
+    const s = themaStand(f, t), g = heuteGeuebt(f, t);
+    const marke = istFaellig(f, t) ? '<span class="countdown warn">fällig</span>'
+      : g.erledigt ? '<span class="pill sicher">heute ✓</span>' : `<span class="pill ${t.status}">${t.status}</span>`;
+    const info = !s.anzahl ? 'noch keine Fragen'
+      : (s.zuletzt ? `zuletzt ${tagWort(s.zuletzt)}: ${s.r} von ${s.n} richtig` : 'noch nicht geübt') + ` · ${s.gesehen} von ${s.anzahl} Fragen gesehen`;
+    const aktion = s.anzahl ? `quizStarten(${fi}, Math.min(quizLaenge, ${s.anzahl}), '${t.nr}')` : '';
+    return `<li style="--f:${fachFarbe(f.name)}${aktion ? ';cursor:pointer' : ''}"${aktion ? ` role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"` : ''}>
+      <span class="tag">${esc(t.nr)}</span><span class="txt">${esc(t.titel)} ${marke}<div class="klein">${info}</div></span>${aktion ? '<span class="pfeil" aria-hidden="true">→</span>' : ''}</li>`;
+  }).join('');
+  return `<details class="schw themenauf quizfach" style="--f:${fachFarbe(f.name)}"${quizOffen.has(fi) ? ' open' : ''} ontoggle="this.open ? quizOffen.add(${fi}) : quizOffen.delete(${fi})">
+    <summary><span class="tag">${esc(f.kurz)}</span> ${esc(f.name)}<div class="klein">${esc(x.grund)} · ${f.fragen.length} Fragen</div></summary>
+    <button class="zweit" type="button" onclick="quizStarten(${fi}, quizLaenge)">Ganzes Fach gemischt (${quizLaenge} Fragen)</button>
+    <ul class="liste">${zeilen}</ul></details>`;
+}
+
 function seiteQuiz(){
   if (runde && runde.pos < runde.fragen.length) return quizFrage();
   if (runde) return quizEnde();
@@ -554,9 +587,8 @@ function seiteQuiz(){
   <section><h2>Als Erstes dran</h2>
     <button class="haupt" type="button" onclick="quizStarten(${erstes.fi}, quizLaenge)"><span>${esc(erstes.f.name)}<small>${esc(erstes.grund)} · ${erstes.f.fragen.length} Fragen im Vorrat</small></span><span class="pfeil">→</span></button>
   </section>
-  ${reihe.length > 1 ? `<section><h2>Oder lieber</h2><ul class="liste">${reihe.slice(1).map(x => `
-    <li style="--f:${fachFarbe(x.f.name)};cursor:pointer" role="button" tabindex="0" onclick="quizStarten(${x.fi}, quizLaenge)" onkeydown="if(event.key==='Enter')quizStarten(${x.fi}, quizLaenge)">
-      <span class="tag">${esc(x.f.kurz)}</span><span class="txt">${esc(x.f.name)}<div class="klein">${esc(x.grund)} · ${x.f.fragen.length} Fragen</div></span><span class="pfeil" aria-hidden="true">→</span></li>`).join('')}</ul></section>` : ''}`
+  <section><h2>Fächer und Themen</h2><p class="sub">Fach antippen, dann ein einzelnes Thema wählen oder das ganze Fach gemischt.</p>
+    ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
   <p class="sub">${dbStatus === 'ok' ? 'Ergebnisse werden gespeichert und beim nächsten Chat am Mac in deinen Lernstand übernommen.' : dbStatus === 'pruefe' ? 'Verbindung wird geprüft …' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende kannst du sie kopieren.'}</p>
   ${meineRundenHtml()}

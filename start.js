@@ -112,7 +112,8 @@
       let fehler = false;
       for (const r of offen) {
         const text = JSON.stringify(r), k = await kennung(text);
-        if (gesendet[r.id] === k) continue;
+        if (gesendet[r.id] === k) { nachtragen(r, true); continue; }
+        nachtragen(r, false);
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const ct = new Uint8Array(await crypto.subtle.encrypt({name: 'AES-GCM', iv}, aktSchluessel, new TextEncoder().encode(text)));
         const bytes = new Uint8Array(12 + ct.length); bytes.set(iv); bytes.set(ct, 12);
@@ -133,6 +134,17 @@
       if (!fehler) ls.set('letzterVersand', new Date().toISOString());
     } catch (e) { ls.set('letzterFehler', (e && e.message) + ' ' + new Date().toISOString()); }
     sendetGerade = false;
+  }
+  // ältere Runden (vor „Meine Runden“) in die Übersicht nachtragen
+  function nachtragen(r, ok) {
+    const l = lsRoh.get('handy.meineRunden', []);
+    const e = l.find(x => x.id === r.id);
+    if (e) { if (ok && !e.ok) { e.ok = true; lsRoh.set('handy.meineRunden', l); } return; }
+    const a = r.antworten || [];
+    l.push({id: r.id, start: r.start, wahl: r.wahl, n: a.length, richtig: a.filter(x => x.richtig).length,
+      themen: [...new Set(a.map(x => x.nr))].sort(), ok});
+    l.sort((x, y) => String(x.start).localeCompare(String(y.start)));
+    lsRoh.set('handy.meineRunden', l.slice(-300));
   }
   function markiereUebertragen(id) {
     const l = lsRoh.get('handy.meineRunden', []);
