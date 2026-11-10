@@ -342,7 +342,9 @@ let db = null, dbStatus = 'pruefe';
 var seite = 'heute';   // var: die Datenbank-Abfrage oben liest sie evtl. schon vorher
 function seiteAusHash(){
   const h = location.hash.replace('#', '');
+  const vorher = seite;
   seite = h === 'zettel' ? 'faecher' : ['heute', 'quiz', 'faecher', 'einstellungen'].includes(h) ? h : 'heute';
+  if (seite === 'faecher' && vorher !== 'faecher') { fachAuswahl = null; offeneFaecher.clear(); }   // neu auf „Fächer“: Gesamtansicht, alles zu
   document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.s === seite ? 'page' : 'false'));
   render();
   window.scrollTo(0, 0);
@@ -431,15 +433,16 @@ function seiteFaecher(){
   return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %) </p></section>
   <input class="suche" id="suche" type="search" placeholder="In allen Lernzetteln suchen" value="${esc(zettelSuche)}" oninput="zettelSuche=this.value;fachInhalt()" autocomplete="off">
   <div class="chips fachsprung">${FAECHER.map((f, fi) => `<button class="chip" type="button" style="--f:${fachFarbe(f.name)}" aria-pressed="${fachAuswahl === fi}" onclick="springeZuFach(${fi})">${esc(f.kurz)}</button>`).join('')}</div>
+  <button class="chip gesamt" id="gesamt" type="button" aria-pressed="${fachAuswahl === null}" onclick="springeZuFach(null)">Gesamtansicht · alle 5 Fächer</button>
   <div id="fachinhalt" class="fachliste">${fachInhaltHtml()}</div>`;
 }
 /* Schnellwahl oben: zum Fach springen und seine Lernzettel aufklappen */
 let fachAuswahl = null;   // Schnellwahl: nur dieses Fach zeigen (direkt unter den Kürzeln), null = alle
 function springeZuFach(fi){
   if (zettelSuche.trim()) { zettelSuche = ''; $('#suche').value = ''; }
-  fachAuswahl = fachAuswahl === fi ? null : fi;      // nochmal antippen = wieder alle
-  if (fachAuswahl !== null) offeneFaecher.add(fi + 'z');
+  fachAuswahl = (fi === null || fachAuswahl === fi) ? null : fi;      // nochmal antippen oder „Gesamtansicht“ = alle
   document.querySelectorAll('.fachsprung .chip').forEach((c, i) => c.setAttribute('aria-pressed', i === fachAuswahl));
+  const g = $('#gesamt'); if (g) g.setAttribute('aria-pressed', fachAuswahl === null);
   fachInhalt();
 }
 function fachInhalt(){ $('#fachinhalt').innerHTML = fachInhaltHtml(); }
