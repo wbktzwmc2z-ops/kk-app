@@ -105,6 +105,22 @@ code{font:.88em/1.4 var(--mono);padding:.08em .35em;border-radius:.35em;backgrou
 details.schw summary{cursor:pointer;font-size:14px;color:var(--muted);padding:4px 0}
 details.themenauf summary{color:var(--ink);font-weight:600;padding:8px 0}
 details.themenauf .themen{margin-top:4px}
+details.runde{border-top:1px solid var(--line);margin:0 -12px;padding:0 12px}
+details.runde summary{display:flex;gap:10px;align-items:center;padding:10px 0;cursor:pointer;list-style:none}
+details.runde summary::-webkit-details-marker{display:none}
+details.runde summary .txt{flex:1;min-width:0;font-weight:400;color:var(--ink)}
+details.runde summary .klein{font-size:13px;color:var(--muted)}
+.rfragen{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:10px}
+.haken.nein{background:var(--bad);border-color:var(--bad)}
+.rfragen li{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.45;padding:10px;border-radius:10px;background:var(--bg);min-width:0}
+.rfragen li.bad{background:var(--bad-soft)}
+.rfragen .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.rfragen .klein{font-size:13px;color:var(--muted);margin-top:4px}
+.rfragen .erkl{font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+.rfragen .tag{font-size:10px;padding:3px 5px}
+.rfragen pre{white-space:pre-wrap;font-size:12px}
+.mini{margin:4px 0 0;padding-left:1.2em}
+.rfragen .mini li{display:list-item;padding:0;margin:2px 0;background:none;border-radius:0;font-size:13px}
 details.quizfach{border:1px solid var(--line);border-left:4px solid var(--f);border-radius:12px;padding:6px 12px;margin:0 0 10px;background:var(--panel)}
 details.quizfach summary .klein{font-size:13px;font-weight:400;color:var(--muted);margin-top:2px}
 details.quizfach > .zweit{width:100%;margin:6px 0}
@@ -239,7 +255,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 5b1e98</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version b73373</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>

@@ -763,26 +763,84 @@ function rundeLokalMerken(){
   const d = rundeDaten();
   const l = speicher.get('meineRunden', []);
   const alt = l.find(x => x.id === runde.id);
+  const kurzWahl = w => (typeof w === 'string' ? w.slice(0, 120) : (typeof w === 'number' || typeof w === 'boolean') ? w : null);
   const eintrag = {id: runde.id, start: d.start, wahl: d.wahl, n: d.antworten.length,
     richtig: d.antworten.filter(a => a.richtig).length,
     themen: [...new Set(d.antworten.map(a => a.nr))].sort(),
+    fragen: runde.fragen.map((q, i) => (!q._wdh && runde.antworten[i]) ? {id: q.id, r: runde.antworten[i].richtig, s: runde.antworten[i].sicher, w: kurzWahl(runde.antworten[i].wahl)} : null).filter(Boolean),
     ok: runde.gespeichert === 'ok' || (alt && alt.ok) || false};
   speicher.set('meineRunden', l.filter(x => x.id !== runde.id).concat([eintrag]).slice(-300));
+}
+/* Lösung und eigene Antwort einer Frage als kurzer Text (für „Meine Runden“) */
+function loesungHtml(q){
+  if (q.typ === 'mc') return quizText(q.optionen[q.richtig]);
+  if (q.typ === 'wf') return q.richtig ? 'Richtig' : 'Falsch';
+  if (q.typ === 'luecke') return `<code>${esc(q.antworten[0])}</code>`;
+  if (q.typ === 'karte') return quizText(q.antwort || '');
+  if (q.typ === 'fehler') return `Fehler bei <code>${esc(q.teile[q.falsch])}</code>${q.korrektur ? ' · ' + quizText(q.korrektur) : ''}`;
+  if (q.typ === 'zuordnung') return '<ul class="mini">' + q.paare.map(p => `<li>${quizText(p[0])} → ${quizText(p[1])}</li>`).join('') + '</ul>';
+  if (q.typ === 'reihenfolge') return '<ol class="mini">' + q.schritte.map(x => `<li>${quizText(x)}</li>`).join('') + '</ol>';
+  return '';
+}
+function deineHtml(q, w){
+  if (w === null || w === undefined || w === '') return '';
+  if (q.typ === 'mc' && q.optionen[w] !== undefined) return quizText(q.optionen[w]);
+  if (q.typ === 'wf' && typeof w === 'boolean') return w ? 'Richtig' : 'Falsch';
+  if (q.typ === 'luecke' && typeof w === 'string') return `<code>${esc(w)}</code>`;
+  if (q.typ === 'fehler' && q.teile[w] !== undefined) return `<code>${esc(q.teile[w])}</code> markiert`;
+  return '';
+}
+const offeneRundenAuf = new Set(), offeneRundenFach = new Set();
+function rundeFragen(x){
+  if (x.fragen) return x.fragen;
+  const o = speicher.get('offeneRunden', []).find(y => y.id === x.id);
+  return o ? (o.antworten || []).map(a => ({id: a.id, r: a.richtig, s: a.sicher, w: null})) : null;
+}
+function rundeDetailHtml(x){
+  const fr = rundeFragen(x);
+  if (!fr) return '<p class="sub">Die einzelnen Fragen dieser Runde sind auf diesem Gerät nicht gespeichert.</p>';
+  return `<ul class="rfragen">${fr.map(e => {
+    const q = alleFragen.find(y => y.id === e.id);
+    if (!q) return `<li class="${e.r ? 'ok' : 'bad'}"><span class="haken ${e.r ? 'ja' : 'nein'}">${e.r ? '✓' : '✗'}</span><span class="txt klein">Diese Frage gibt es nicht mehr.</span></li>`;
+    const deine = !e.r ? deineHtml(q, e.w) : '';
+    const marke = e.r ? (e.s === false ? ' <span class="pill wackelig">geraten</span>' : '') : (e.s ? ' <span class="pill wackelig">war sicher</span>' : '');
+    return `<li class="${e.r ? 'ok' : 'bad'}"><span class="haken ${e.r ? 'ja' : 'nein'}">${e.r ? '✓' : '✗'}</span><span class="txt">
+      <span class="tag">${esc(q.nr)}</span> ${mitLuecke(quizText(q.frage))}${marke}
+      ${deine ? `<div class="klein">Deine Antwort: ${deine}</div>` : ''}
+      <div class="klein"><b>Richtig:</b> ${loesungHtml(q)}</div>
+      ${q.erklaerung ? `<div class="erkl">${quizText(q.erklaerung)}</div>` : ''}</span></li>`;
+  }).join('')}</ul>`;
 }
 function meineRundenHtml(){
   const l = speicher.get('meineRunden', []).filter(x => x.n > 0).slice().reverse();
   if (!l.length) return '';
-  const kurz = name => (FAECHER.find(f => f.name === name) || {}).kurz || name;
   const tag = iso => { const d = new Date(iso); const t = isoTag(d); return (t === HEUTE ? 'heute' : t === isoTag(new Date(Date.now() - 864e5)) ? 'gestern' : datumKurz(t)) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
   const wartend = l.filter(x => !x.ok).length;
+  const gruppen = [];
+  l.forEach(x => { let g = gruppen.find(y => y.name === x.wahl); if (!g) gruppen.push(g = {name: x.wahl, runden: []}); g.runden.push(x); });
   return `<section><h2>Meine Runden</h2>
-    ${wartend ? `<p class="sub">${wartend} ${wartend === 1 ? 'Runde wartet' : 'Runden warten'} noch auf die Übertragung zum Mac.</p>` : ''}
-    <ul class="liste">${l.slice(0, 20).map(x => `<li style="--f:${fachFarbe(x.wahl)}">
-      <span class="tag">${esc(kurz(x.wahl))}</span>
-      <span class="txt"><b>${x.richtig} von ${x.n}</b> richtig<div class="klein">${tag(x.start)} · Thema ${x.themen.join(', ')}</div></span>
-      <span class="pill ${x.ok ? 'sicher' : 'wackelig'}">${x.ok ? 'übertragen' : 'wartet'}</span></li>`).join('')}</ul>
-    ${l.length > 20 ? `<p class="sub">und ${l.length - 20} ältere</p>` : ''}</section>`;
+    <p class="sub">${wartend ? `${wartend} ${wartend === 1 ? 'Runde wartet' : 'Runden warten'} noch auf die Übertragung zum Mac. ` : ''}Fach aufklappen, dann eine Runde antippen: dort stehen alle Fragen mit Lösung und Erklärung.</p>
+    ${gruppen.map(g => {
+      const f = FAECHER.find(y => y.name === g.name);
+      const n = g.runden.reduce((s, x) => s + x.n, 0), r = g.runden.reduce((s, x) => s + x.richtig, 0);
+      return `<details class="schw themenauf quizfach" style="--f:${fachFarbe(g.name)}"${offeneRundenFach.has(g.name) ? ' open' : ''} ontoggle="this.open ? offeneRundenFach.add(this.dataset.n) : offeneRundenFach.delete(this.dataset.n)" data-n="${esc(g.name)}">
+        <summary><span class="tag">${esc(f ? f.kurz : 'Mix')}</span> ${esc(f ? f.name : 'Gemischt')}<div class="klein">${g.runden.length} ${g.runden.length === 1 ? 'Runde' : 'Runden'} · ${r} von ${n} richtig · zuletzt ${tag(g.runden[0].start)}</div></summary>
+        ${g.runden.slice(0, 30).map(x => `<details class="runde"${offeneRundenAuf.has(x.id) ? ' open' : ''} ontoggle="this.open ? offeneRundenAuf.add('${x.id}') : offeneRundenAuf.delete('${x.id}')">
+          <summary><span class="txt"><b>${x.richtig} von ${x.n}</b> richtig<div class="klein">${tag(x.start)} · Thema ${x.themen.join(', ')}</div></span>
+          <span class="pill ${x.ok ? 'sicher' : 'wackelig'}">${x.ok ? 'übertragen' : 'wartet'}</span></summary>
+          ${offeneRundenAuf.has(x.id) ? rundeDetailHtml(x) : '<div class="lade" data-id="' + x.id + '"></div>'}</details>`).join('')}
+      </details>`;
+    }).join('')}</section>`;
 }
+/* Runde aufklappen: Fragen erst dann einsetzen (spart Arbeit bei vielen Runden) */
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d.classList || !d.classList.contains('runde') || !d.open) return;
+  const platz = d.querySelector('.lade');
+  if (!platz) return;
+  const x = speicher.get('meineRunden', []).find(y => y.id === platz.dataset.id);
+  if (x) platz.outerHTML = rundeDetailHtml(x);
+}, true);
 function offlineMerken(){
   const liste = speicher.get('offeneRunden', []).filter(x => x.id !== runde.id);
   liste.push(Object.assign({id: runde.id}, rundeDaten()));
