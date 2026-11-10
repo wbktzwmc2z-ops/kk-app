@@ -254,14 +254,30 @@ const FAECHER = (D && D.faecher) || [];
 const alleFragen = [];
 FAECHER.forEach(f => (f.fragen || []).forEach(q => alleFragen.push(Object.assign({}, q, {fach: f.name, kurz: f.kurz}))));
 const themaVon = (fach, nr) => (FAECHER.find(f => f.name === fach)?.themen || []).find(t => t.nr === nr);
-function istFaellig(f, t){
+/* Heute im Quiz wiederholt? Erster Versuch, ab 3 Fragen und 80 % richtig = vorläufig erledigt,
+   bis der Mac es beim nächsten Abgleich in den Lernstand einträgt (danach ist es dort ohnehin nicht mehr fällig). */
+function heuteGeuebt(f, t){
+  let n = 0, r = 0;
+  alleFragen.forEach(q => {
+    if (q.fach !== f.name || q.nr !== t.nr) return;
+    (verlauf[q.id] || []).forEach(v => { if (String(v.t).slice(0, 10) === HEUTE || isoTag(new Date(v.t)) === HEUTE) { n++; if (v.r && v.s !== false) r++; else if (v.r) r += .5; } });
+  });
+  return {n, r, erledigt: n >= 3 && r / n >= .8};
+}
+function istFaellig(f, t, mitHeute){
   if (!t || t.status === 'offen') return false;
+  if (!mitHeute && heuteGeuebt(f, t).erledigt) return false;
   if (t.naechsteWdh && t.naechsteWdh <= HEUTE) return true;
   return (f.faellig || []).some(x => x.nr === t.nr && /fällig|abfragen|wiederhol/i.test(x.titel) && !/nichts mehr fällig/i.test(x.titel));
 }
 function faelligListe(){
   const l = [];
   FAECHER.forEach(f => f.themen.forEach(t => { if (istFaellig(f, t)) l.push({f, t}); }));
+  return l;
+}
+function heuteErledigtListe(){
+  const l = [];
+  FAECHER.forEach(f => f.themen.forEach(t => { if (istFaellig(f, t, true) && heuteGeuebt(f, t).erledigt) l.push({f, t}); }));
   return l;
 }
 
@@ -346,6 +362,7 @@ function seiteHeute(){
   </button>`; })()}
   ${fortschrittHtml()}
   <section><h2>Fällig</h2>${faelligHtml}</section>
+  ${(l => l.length ? `<section><h2>Heute wiederholt ✓</h2><ul class="liste">${l.map(({f, t}) => { const g = heuteGeuebt(f, t); return `<li style="--f:${fachFarbe(f.name)}" class="erledigt-heute"><span class="haken ja">✓</span><span class="tag">${esc(f.kurz)} ${t.nr}</span><span class="txt">${esc(t.titel)}<div class="klein">${Math.round(g.r)} von ${g.n} richtig · wird beim nächsten Abgleich in den Lernstand eingetragen</div></span></li>`; }).join('')}</ul></section>` : '')(heuteErledigtListe())}
   ${window.__KK ? window.__KK.einstellungenHtml() : ''}`;
 }
 
@@ -542,7 +559,8 @@ function seiteQuiz(){
       <span class="tag">${esc(x.f.kurz)}</span><span class="txt">${esc(x.f.name)}<div class="klein">${esc(x.grund)} · ${x.f.fragen.length} Fragen</div></span><span class="pfeil" aria-hidden="true">→</span></li>`).join('')}</ul></section>` : ''}`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
   <p class="sub">${dbStatus === 'ok' ? 'Ergebnisse werden gespeichert und beim nächsten Chat am Mac in deinen Lernstand übernommen.' : dbStatus === 'pruefe' ? 'Verbindung wird geprüft …' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende kannst du sie kopieren.'}</p>
-  ${offline.length && dbStatus !== 'ok' ? `<section><h2>Noch nicht übertragen</h2><textarea class="kopie" id="kopieAlt" readonly>${esc(offline.map(rundeAlsText).join('\n\n'))}</textarea><div class="reihe"><button class="zweit" type="button" onclick="kopieren('kopieAlt')">Text kopieren</button><button class="zweit" type="button" onclick="speicher.set('offeneRunden',[]);render()">Liste leeren</button></div></section>` : ''}`;
+  ${meineRundenHtml()}
+  ${offline.length && dbStatus !== 'ok' && !(window.__KK && window.__KK.briefkastenAn && window.__KK.briefkastenAn()) ? `<section><h2>Noch nicht übertragen (von Hand)</h2><p class="sub">Ohne Briefkasten-Schlüssel (unten auf der Startseite unter „App“) kommt das nur per Kopieren zum Mac.</p><textarea class="kopie" id="kopieAlt" readonly>${esc(offline.map(rundeAlsText).join('\n\n'))}</textarea><div class="reihe"><button class="zweit" type="button" onclick="kopieren('kopieAlt')">Text kopieren</button><button class="zweit" type="button" onclick="speicher.set('offeneRunden',[]);render()">Liste leeren</button></div></section>` : ''}`;
 }
 
 const TYPNAME = {mc: 'Auswahl', wf: 'Richtig oder falsch', zuordnung: 'Zuordnen', luecke: 'Lücke füllen', karte: 'Aufdecken', reihenfolge: 'Reihenfolge', fehler: 'Fehler finden'};
@@ -677,6 +695,7 @@ function beantworte(wahl, richtig, sicher){
     r.fragen.push(kopie); r.mix.push(mischung(kopie));
   }
   render();
+  rundeLokalMerken();
   rundeSichern();
 }
 function weiter(){ Object.assign(runde, {pos: runde.pos + 1, beantwortet: false, vorlaeufig: null, reihe: [], aufgedeckt: false}); render(); window.scrollTo(0, 0); }
@@ -701,16 +720,43 @@ async function rundeSichern(){
   if (sichernLaeuft) { sichernNochmal = true; return; }
   sichernLaeuft = true;
   const r = runde;
-  try { await db.collection('runden').doc(r.id).set(rundeDaten()); r.gespeichert = 'ok'; }
+  try { await db.collection('runden').doc(r.id).set(rundeDaten()); r.gespeichert = 'ok'; rundeLokalMerken(); }
   catch (e) { r.gespeichert = 'fehler'; offlineMerken(); }
   sichernLaeuft = false;
   if (sichernNochmal) { sichernNochmal = false; rundeSichern(); }
 }
+/* Meine Runden: Übersicht auf diesem Gerät (Fach, Ergebnis, Themen, übertragen?) */
+function rundeLokalMerken(){
+  if (!runde) return;
+  const d = rundeDaten();
+  const l = speicher.get('meineRunden', []);
+  const alt = l.find(x => x.id === runde.id);
+  const eintrag = {id: runde.id, start: d.start, wahl: d.wahl, n: d.antworten.length,
+    richtig: d.antworten.filter(a => a.richtig).length,
+    themen: [...new Set(d.antworten.map(a => a.nr))].sort(),
+    ok: runde.gespeichert === 'ok' || (alt && alt.ok) || false};
+  speicher.set('meineRunden', l.filter(x => x.id !== runde.id).concat([eintrag]).slice(-300));
+}
+function meineRundenHtml(){
+  const l = speicher.get('meineRunden', []).filter(x => x.n > 0).slice().reverse();
+  if (!l.length) return '';
+  const kurz = name => (FAECHER.find(f => f.name === name) || {}).kurz || name;
+  const tag = iso => { const d = new Date(iso); const t = isoTag(d); return (t === HEUTE ? 'heute' : t === isoTag(new Date(Date.now() - 864e5)) ? 'gestern' : datumKurz(t)) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const wartend = l.filter(x => !x.ok).length;
+  return `<section><h2>Meine Runden</h2>
+    ${wartend ? `<p class="sub">${wartend} ${wartend === 1 ? 'Runde wartet' : 'Runden warten'} noch auf die Übertragung zum Mac.</p>` : ''}
+    <ul class="liste">${l.slice(0, 20).map(x => `<li style="--f:${fachFarbe(x.wahl)}">
+      <span class="tag">${esc(kurz(x.wahl))}</span>
+      <span class="txt"><b>${x.richtig} von ${x.n}</b> richtig<div class="klein">${tag(x.start)} · Thema ${x.themen.join(', ')}</div></span>
+      <span class="pill ${x.ok ? 'sicher' : 'wackelig'}">${x.ok ? 'übertragen' : 'wartet'}</span></li>`).join('')}</ul>
+    ${l.length > 20 ? `<p class="sub">und ${l.length - 20} ältere</p>` : ''}</section>`;
+}
 function offlineMerken(){
   const liste = speicher.get('offeneRunden', []).filter(x => x.id !== runde.id);
   liste.push(Object.assign({id: runde.id}, rundeDaten()));
-  speicher.set('offeneRunden', liste.slice(-30));
+  speicher.set('offeneRunden', liste.slice(-100));
   runde.gespeichert = 'lokal';
+  if (window.__KK && window.__KK.senden) window.__KK.senden(runde.id);
 }
 function rundeAlsText(d){
   const gruppen = {};

@@ -76,7 +76,7 @@
     const s = await salt();
     const basis = await crypto.subtle.importKey('raw', new TextEncoder().encode(passwort), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey({name: 'PBKDF2', salt: b64(s.salt), iterations: s.iter, hash: 'SHA-256'},
-      basis, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+      basis, {name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']);   // encrypt: für den Briefkasten
   }
   async function entschluesseln(schluessel) {
     const buf = await hole('daten');
@@ -86,6 +86,62 @@
     // ungepackt (kein DecompressionStream nötig, läuft auch auf älteren iPhones)
     return JSON.parse(new TextDecoder().decode(klar));
   }
+
+  /* ---------- Briefkasten: Runden verschlüsselt an das private Projekt kk-eingang ----------
+     Der Schlüssel (Token) darf nur in kk-eingang schreiben. Die Runden sind mit demselben Schlüssel
+     verschlüsselt wie die Lerndaten; der Mac entschlüsselt sie mit dem Passwort aus dem Schlüsselbund. */
+  const EINGANG = 'https://api.github.com/repos/wbktzwmc2z-ops/kk-eingang/contents/runden/';
+  let aktSchluessel = null, eingangToken = null, sendeTimer = null, sendetGerade = false;
+  const lsRoh = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  const zuB64 = bytes => { let s = ''; const b = new Uint8Array(bytes); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+  async function kennung(text) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return zuB64(h).slice(0, 16); }
+  function api(url, opt) {
+    return mitZeitlimit(fetch(url, Object.assign({cache: 'no-store'}, opt, {headers: Object.assign({
+      'Authorization': 'Bearer ' + eingangToken, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}, (opt || {}).headers || {})})), 15000);
+  }
+  async function sendeAlles() {
+    if (sendetGerade || !eingangToken || !aktSchluessel || navigator.onLine === false) return;
+    if (!aktSchluessel.usages || aktSchluessel.usages.indexOf('encrypt') < 0) return;
+    sendetGerade = true;
+    try {
+      const offen = lsRoh.get('handy.offeneRunden', []);
+      const gesendet = ls.get('gesendet', {}), shas = ls.get('shas', {});
+      let fehler = false;
+      for (const r of offen) {
+        const text = JSON.stringify(r), k = await kennung(text);
+        if (gesendet[r.id] === k) continue;
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await crypto.subtle.encrypt({name: 'AES-GCM', iv}, aktSchluessel, new TextEncoder().encode(text)));
+        const bytes = new Uint8Array(12 + ct.length); bytes.set(iv); bytes.set(ct, 12);
+        const url = EINGANG + encodeURIComponent(r.id) + '.bin';
+        const body = sha => JSON.stringify(Object.assign({message: 'Runde', content: zuB64(bytes)}, sha ? {sha} : {}));
+        let res = await api(url, {method: 'PUT', body: body(shas[r.id])});
+        if (res.status === 409 || res.status === 422) {          // Datei gibt es schon: aktuellen Stand (sha) holen
+          const g = await api(url, {method: 'GET'});
+          if (g.ok) { shas[r.id] = (await g.json()).sha; res = await api(url, {method: 'PUT', body: body(shas[r.id])}); }
+        }
+        if (res.ok) { shas[r.id] = (await res.json()).content.sha; gesendet[r.id] = k; markiereUebertragen(r.id); }
+        else { fehler = true; ls.set('letzterFehler', res.status + ' ' + new Date().toISOString()); break; }
+      }
+      // gesendete Runden, die älter als ein Tag sind, aus der Warteliste nehmen
+      const tag = Date.now() - 864e5;
+      lsRoh.set('handy.offeneRunden', offen.filter(r => !(gesendet[r.id] && new Date(r.ende || r.start).getTime() < tag)));
+      ls.set('gesendet', gesendet); ls.set('shas', shas);
+      if (!fehler) ls.set('letzterVersand', new Date().toISOString());
+    } catch (e) { ls.set('letzterFehler', (e && e.message) + ' ' + new Date().toISOString()); }
+    sendetGerade = false;
+  }
+  function markiereUebertragen(id) {
+    const l = lsRoh.get('handy.meineRunden', []);
+    const e = l.find(x => x.id === id);
+    if (e && !e.ok) { e.ok = true; lsRoh.set('handy.meineRunden', l); }
+  }
+  function spaeterSenden(ms) { clearTimeout(sendeTimer); sendeTimer = setTimeout(sendeAlles, ms); }
+  window.addEventListener('online', () => spaeterSenden(2000));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') spaeterSenden(3000); });
 
   /* ---------- Sperrbildschirm ---------- */
   function sperre(meldung) {
@@ -105,9 +161,12 @@
 
   /* ---------- App starten ---------- */
   let gestartet = false;
-  async function starten(daten) {
+  async function starten(daten, schluessel) {
     if (gestartet) return;
     gestartet = true;
+    aktSchluessel = schluessel || null;
+    eingangToken = (await hole('eingangToken')) || null;
+    spaeterSenden(3000);
     window.__KK_DATEN = daten;
     $('#schloss').hidden = true;
     const v = (await hole('version')) || {};
@@ -128,11 +187,29 @@
         <li><label class="txt" for="kkAuto" style="display:flex;gap:10px;align-items:center;cursor:pointer">
           <input id="kkAuto" type="checkbox" ${auto ? 'checked' : ''} onchange="__KK.auto(this.checked)" style="width:20px;height:20px">
           <span>Automatisch aktualisieren, sobald Internet da ist<div class="klein">Aus: Die App prüft nur kurz (ca. 100 Byte) und lädt erst, wenn du auf „Aktualisieren“ tippst, z. B. im WLAN.</div></span></label></li>
+        <li><span class="txt">Übertragung zum Mac (Briefkasten)<div class="klein">${eingangToken ? 'eingerichtet' + (ls.get('letzterVersand', null) ? ' · zuletzt gesendet ' + new Date(ls.get('letzterVersand')).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '') + (ls.get('letzterFehler', null) ? '<br>letzter Fehler: ' + String(ls.get('letzterFehler')).split(' ')[0] : '') : 'noch nicht eingerichtet: Schlüssel für kk-eingang einfügen'}</div>
+          <div style="display:flex;gap:6px;margin-top:8px"><input id="kkToken" type="password" autocomplete="off" placeholder="${eingangToken ? 'neuen Schlüssel einfügen' : 'github_pat_…'}" style="flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
+          <button class="zweit" type="button" onclick="__KK.tokenSpeichern()">Speichern</button></div></span></li>
         <li><span class="txt">Passwort auf diesem Handy vergessen<div class="klein">Danach fragt die App beim Öffnen wieder nach dem Passwort.</div></span>
           <button class="zweit" type="button" onclick="__KK.abmelden()">Vergessen</button></li>
       </ul></section>`;
     },
     auto(an) { ls.set('auto', !!an); },
+    briefkastenAn() { return !!eingangToken; },
+    senden() { spaeterSenden(4000); },
+    async tokenSpeichern() {
+      const t = ($('#kkToken').value || '').trim();
+      if (!/^github_pat_[A-Za-z0-9_]+$/.test(t)) return alertLeise('Das sieht nicht wie ein GitHub-Schlüssel aus (fängt mit github_pat_ an).');
+      const alt = eingangToken; eingangToken = t;
+      try {
+        const r = await api('https://api.github.com/repos/wbktzwmc2z-ops/kk-eingang', {method: 'GET'});
+        if (!r.ok) throw new Error(r.status);
+        await lege('eingangToken', t); $('#kkToken').value = '';
+        alertLeise('Gespeichert. Deine Runden werden jetzt automatisch übertragen.');
+        await sendeAlles();
+        if (typeof render === 'function') render();
+      } catch (e) { eingangToken = alt; alertLeise('Der Schlüssel funktioniert nicht für kk-eingang (' + (e && e.message) + '). Ist er für das richtige Projekt erstellt?'); }
+    },
     async jetzt() {
       const e = await aktualisieren(true);
       if (e === 'neu') location.reload();
@@ -166,7 +243,9 @@
 
     const gemerkt = await hole('schluessel');
     if (gemerkt) {
-      try { return starten(await entschluesseln(gemerkt)); }
+      // alter gemerkter Schlüssel ohne „encrypt“: einmal neu anmelden, damit der Briefkasten senden kann
+      if (gemerkt.usages && gemerkt.usages.indexOf('encrypt') < 0) { await weg('schluessel'); return sperre('Einmal neu anmelden, damit deine Runden automatisch zum Mac übertragen werden können.'); }
+      try { return starten(await entschluesseln(gemerkt), gemerkt); }
       catch (e) { await weg('schluessel'); }
     }
     sperre('');
@@ -192,7 +271,7 @@
         }
         schritt = 'Starten';
         feld.value = '';
-        await starten(daten);
+        await starten(daten, k);
       } catch (e) {
         const name = (e && (e.name || e.message)) || 'unbekannt';
         let text;
