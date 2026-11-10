@@ -276,7 +276,8 @@ h2{text-transform:none;letter-spacing:0;font-size:14px;font-weight:550;color:var
 .liste li{border-bottom:0.5px solid var(--line)}
 .fach{border-top:0.5px solid var(--line);border-radius:var(--radius)}
 .fach .kopf .tag{background:color-mix(in srgb,var(--f) 13%,transparent)}
-.fach::before{content:"";display:block;height:4px;margin:-14px -14px 4px;border-radius:var(--radius) var(--radius) 0 0;background:var(--f)}
+.fach{position:relative;overflow:hidden;padding-top:18px}
+.fach::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--f)}   /* vom Kasten abgeschnitten = folgt den runden Ecken */
 .bilanz{border-radius:var(--radius)}
 .bilanz-zahlen b{font-weight:550}
 details.quizfach{border-left:0.5px solid var(--line);border-radius:var(--radius);padding:8px 14px}
@@ -290,6 +291,15 @@ details.quizfach summary .tag{margin-right:4px}
 .countdown{background:var(--accent-soft);color:var(--accent-ink);font-weight:550}
 .suche{border:0.5px solid var(--line);border-radius:14px;box-shadow:var(--schatten)}
 nav.tabs{border-top:0.5px solid var(--line)}
+
+/* mehr TH-Rot für ein einheitliches Bild */
+h1{color:var(--accent-ink)}
+h2{color:color-mix(in srgb,var(--accent-ink) 55%,var(--muted))}
+.bilanz-zahlen b{color:var(--accent-ink)}
+.bilanz-fort .bar span{background:var(--accent)!important}
+.bar{background:color-mix(in srgb,var(--accent) 10%,var(--line))}
+.haupt:active,.zweit:active{transform:scale(.98)}
+.zweit{color:var(--ink)}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -334,7 +344,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 16b552</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 2daeab</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
