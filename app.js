@@ -566,8 +566,8 @@ function vorschlagKnopf(v, haupt){
   const aktion = v.zettel ? `zeigeZettel(${v.fi}, '${v.nr}', ${v.kurz})` : `quizStarten(${v.fi}, ${n}${v.nr ? `, '${v.nr}'` : ''})`;
   const titel = v.nr ? `${v.f.kurz} ${v.nr} · ${v.t.titel}` : `${v.f.name} gemischt`;
   return haupt
-    ? `<button class="haupt" type="button" onclick="${aktion}"><span>${esc(titel)}<small>${esc(v.grund)}</small></span><span class="pfeil">→</span></button>`
-    : `<li style="--f:${fachFarbe(v.f.name)};cursor:pointer" role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"><span class="tag">${esc(v.f.kurz)}${v.nr ? ' ' + esc(v.nr) : ''}</span><span class="txt">${esc(v.nr ? v.t.titel : 'gemischt')}<div class="klein">${esc(v.grund)}</div></span><span class="pfeil" aria-hidden="true">→</span></li>`;
+    ? `<button class="haupt" type="button" style="--f:${fachFarbe(v.f.name)}" onclick="${aktion}"><span><span class="vfach">${esc(v.f.kurz)}${v.nr ? ' ' + esc(v.nr) : ''}</span>${esc(v.nr ? v.t.titel : 'gemischt')}<small>${esc(v.grund)}</small></span><span class="pfeil">→</span></button>`
+    : `<li class="vorschlag" style="--f:${fachFarbe(v.f.name)};cursor:pointer" role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"><span class="tag">${esc(v.f.kurz)}${v.nr ? ' ' + esc(v.nr) : ''}</span><span class="txt">${esc(v.nr ? v.t.titel : 'gemischt')}<div class="klein">${esc(v.grund)}</div></span><span class="pfeil" aria-hidden="true">→</span></li>`;
 }
 /* Startseite: Tagesbilanz (Runden, Fragen, Quote, Fälliges geschafft, Tage in Folge) */
 function tagesbilanzHtml(){

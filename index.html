@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#f4d8d5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#2b1b1a" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#dc6f69" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#5a1f1d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Lernen unterwegs</title>
@@ -264,11 +264,14 @@ nav.tabs a[aria-current="page"]{color:var(--accent)}
 :root[data-theme="dark"]{
   --bg:#161414; --panel:#1f1c1c; --ink:#efeceb; --muted:#9e9897; --line:#302b2b;
   --accent:#ef6a62; --accent-soft:#3a2120; --accent-ink:#f59a93; --schatten:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25)}
-:root{--oben:#f4d8d5}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--oben:#2b1b1a}}
-:root[data-theme="dark"]{--oben:#2b1b1a}
-html{background:var(--oben)}   /* auch Statusleiste und Überscrollen oben in Rosé, kein harter Schnitt */
-body{background:var(--bg) linear-gradient(180deg,var(--oben) 0,color-mix(in srgb,var(--oben) 55%,var(--bg)) 160px,var(--bg) 460px) no-repeat;min-height:100vh}
+:root{--kopf:#dc6f69; --oben:#efb3ac}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--kopf:#5a1f1d; --oben:#3a2120}}
+:root[data-theme="dark"]{--kopf:#5a1f1d; --oben:#3a2120}
+html{background:linear-gradient(180deg,var(--kopf) 0 50%,var(--bg) 50% 100%)}   /* Überscrollen: oben Rot, unten Off-White */
+body{margin:0}
+/* Verlauf: kräftiges Rot hinter der Statusleiste (weiße Uhrzeit bleibt lesbar), dann Pastell-Rosé, dann Off-White */
+body{background:var(--bg) linear-gradient(180deg,var(--kopf) 0,var(--kopf) env(safe-area-inset-top,0px),var(--oben) calc(env(safe-area-inset-top,0px) + 70px),color-mix(in srgb,var(--oben) 50%,var(--bg)) calc(env(safe-area-inset-top,0px) + 230px),var(--bg) calc(env(safe-area-inset-top,0px) + 560px)) no-repeat;min-height:100vh}
+main{padding-top:calc(18px + env(safe-area-inset-top,0px))}
 h1{font-weight:550;letter-spacing:-.015em}
 h2{text-transform:none;letter-spacing:0;font-size:14px;font-weight:550;color:var(--muted)}
 .liste,.fach,.bilanz,details.quizfach,.leer,.stelle,.karte{border:0.5px solid var(--line);box-shadow:var(--schatten)}
@@ -300,6 +303,9 @@ h2{color:color-mix(in srgb,var(--accent-ink) 55%,var(--muted))}
 .bar{background:color-mix(in srgb,var(--accent) 10%,var(--line))}
 .haupt:active,.zweit:active{transform:scale(.98)}
 .zweit{color:var(--ink)}
+.vfach{display:inline-block;margin:0 0 6px;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--f) 82%,#000);color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.haupt > span:first-child{display:flex;flex-direction:column;align-items:flex-start}
+.vorschlag .tag{background:color-mix(in srgb,var(--f) 82%,#000);color:#fff;font-weight:700}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -344,7 +350,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 2daeab</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 6f3566</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
