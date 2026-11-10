@@ -413,7 +413,7 @@ function fachInhaltHtml(){
     const zettel = nrs.map(nr => {
       const z = f.zettel.find(x => x.nr === nr), c = f.cheats.find(x => x.nr === nr);
       return `<li class="zrow"><div class="zkopf"><span class="nr">${nr}</span><span class="t">${esc((z || c).titel.replace(/^\d+\s*[_.:-]?\s*/, ''))}</span></div>
-        <div class="zknoepfe">${z ? `<button class="zweit" type="button" onclick="zeigeZettel(${fi},'${nr}',false)">Lernzettel</button>` : ''}${c ? `<button class="zweit" type="button" onclick="zeigeZettel(${fi},'${nr}',true)">Cheat Sheet</button>` : ''}</div></li>`;
+        <div class="zknoepfe">${z ? `<button class="zweit lang" type="button" onclick="zeigeZettel(${fi},'${nr}',false)">Lernzettel</button>` : ''}${c ? `<button class="zweit kurz" type="button" onclick="zeigeZettel(${fi},'${nr}',true)">Cheat Sheet</button>` : ''}</div></li>`;
     }).join('');
     // 2. Themen mit Status (weniger wichtig), Schwächen darunter
     const themen = f.themen.map(t => `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}</span><span class="pill ${t.status}">${t.status}</span></li>`).join('');
