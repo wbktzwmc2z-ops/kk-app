@@ -240,6 +240,13 @@
       try { await weg('version'); } catch (e) {}
       location.replace('./?neu=' + Date.now());
     },
+    async ziehen() {
+      // Nach-unten-ziehen auf der Seite: erst Runden zum Mac schicken, dann neuen Stand holen
+      try { await sendeAlles(); } catch (e) {}
+      const e = await aktualisieren(true);
+      if (e === 'neu') { location.reload(); return new Promise(() => {}); }
+      alertLeise(e === 'aktuell' ? 'Alles aktuell' + (eingangToken ? ', Runden sind übertragen.' : '.') : e === 'offline' ? 'Kein Internet. Später noch einmal ziehen.' : 'Aktualisieren hat nicht geklappt.');
+    },
     async abmelden() { await weg('schluessel'); location.reload(); }
   };
   const esc6 = a => String(a || '–').slice(0, 6).replace(/[^0-9a-f–]/g, '');

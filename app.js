@@ -992,4 +992,43 @@ function quizEnde(){
   <button class="zweit" type="button" onclick="runde=null;geheZu('heute')">Zurück zu Heute</button></div>`;
 }
 
+/* ---------- Nach unten ziehen = aktualisieren (wie auf normalen Webseiten) ----------
+   Nur ganz oben auf der Seite, nicht während einer Quizfrage und nicht im geöffneten Lernzettel.
+   In der Offline-App: Runden senden, neuen Stand holen (bei Neuem neu laden). Sonst: Seite neu laden. */
+(() => {
+  // In Safari als normaler Tab gibt es das schon eingebaut, dort nicht doppelt
+  const eigeneSeite = window.top === window, alsApp = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  if (eigeneSeite && !alsApp && !/[?&]ziehtest/.test(location.search)) return;
+  const anzeige = document.createElement('div');
+  anzeige.id = 'ziehen'; anzeige.innerHTML = '<span class="ziehen-kreis">↓</span>';
+  document.body.appendChild(anzeige);
+  let start = null, weg = 0, laeuft = false;
+  const SCHWELLE = 80;
+  const darf = () => !laeuft && window.scrollY <= 0 && $('#leser').hidden && !(runde && runde.pos < runde.fragen.length);
+  document.addEventListener('touchstart', e => { start = darf() && e.touches.length === 1 ? e.touches[0].clientY : null; weg = 0; }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if (start === null) return;
+    weg = Math.max(0, e.touches[0].clientY - start);
+    if (window.scrollY > 0) { start = null; weg = 0; }
+    const d = Math.min(weg * .5, SCHWELLE * .9);
+    anzeige.style.transform = `translate(-50%, ${d - 50}px)`;
+    anzeige.style.opacity = Math.min(1, weg / SCHWELLE);
+    anzeige.classList.toggle('bereit', weg >= SCHWELLE * 1.6);
+  }, {passive: true});
+  document.addEventListener('touchend', async () => {
+    if (start === null) return;
+    const los = weg >= SCHWELLE * 1.6;
+    start = null;
+    if (!los) { anzeige.style.transform = ''; anzeige.style.opacity = 0; anzeige.classList.remove('bereit'); return; }
+    laeuft = true; anzeige.classList.add('dreht'); anzeige.style.transform = 'translate(-50%, 16px)'; anzeige.style.opacity = 1;
+    try {
+      if (window.__KK && window.__KK.ziehen) await window.__KK.ziehen();
+      else location.reload();
+    } finally {
+      laeuft = false; anzeige.classList.remove('dreht', 'bereit'); anzeige.style.transform = ''; anzeige.style.opacity = 0;
+      render();
+    }
+  });
+})();
+
 seiteAusHash();

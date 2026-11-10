@@ -207,6 +207,11 @@ textarea.kopie{width:100%;min-height:120px;font:13px/1.45 var(--mono);padding:10
 #leser .inhalt details{margin:0 0 .8em;padding:.5em .8em;border:1px solid var(--line);border-radius:.8em}
 
 /* Leiste unten */
+#ziehen{position:fixed;top:0;left:50%;transform:translate(-50%,-50px);opacity:0;z-index:50;transition:transform .15s,opacity .15s;pointer-events:none;padding-top:env(safe-area-inset-top,0px)}
+.ziehen-kreis{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--panel);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.12);font-size:18px;color:var(--muted);transition:transform .2s}
+#ziehen.bereit .ziehen-kreis{transform:rotate(180deg);color:var(--accent)}
+#ziehen.dreht .ziehen-kreis{animation:kkdreh .8s linear infinite;color:var(--accent)}
+@keyframes kkdreh{to{transform:rotate(360deg)}}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
@@ -258,7 +263,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version abd02d</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 2b6145</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
