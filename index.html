@@ -96,7 +96,7 @@ code{font:.88em/1.4 var(--mono);padding:.08em .35em;border-radius:.35em;backgrou
 .themen li{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
 .themen .nr{font:600 12px var(--mono);color:var(--muted);flex:none;width:22px}
 .themen .t{flex:1;min-width:0}
-.tknoepfe{display:inline-flex;gap:5px;margin-left:6px;vertical-align:1px}
+.tknoepfe{display:inline-flex;gap:5px;flex:none}
 .mini-knopf{font-family:inherit;font-size:11px;font-weight:600;line-height:1;padding:4px 8px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
 #suche{margin-bottom:14px}
 .fortschrittsliste li.fs{display:flex;flex-direction:column;align-items:stretch;gap:7px;cursor:pointer;padding:11px 14px}
@@ -130,6 +130,18 @@ details.quizfach > .zweit{width:100%;margin:6px 0}
 details.quizfach .liste{margin:0 -12px -6px;border:0;border-top:1px solid var(--line);border-radius:0 0 12px 12px}
 details.quizfach .liste .txt .pill, details.quizfach .liste .txt .countdown{margin-left:4px;vertical-align:1px}
 details.schw ul{margin:6px 0 0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:6px}
+.fachliste{display:flex;flex-direction:column;gap:14px}
+details.fachteil{border-top:1px solid var(--line);padding-top:4px}
+details.fachteil summary{cursor:pointer;font-weight:600;font-size:15px;padding:8px 0;display:flex;align-items:center;gap:8px}
+details.fachteil summary{list-style:none}
+details.fachteil summary::-webkit-details-marker{display:none}
+details.fachteil summary::before{content:'▸';display:inline-block;font-size:12px;color:var(--muted);width:12px;transition:transform .15s}
+details.fachteil[open] summary::before{transform:rotate(90deg)}
+details.fachteil summary .zahl{margin-left:auto;font-size:13px;font-weight:500;color:var(--muted)}
+details.fachteil.neben summary{font-weight:500;color:var(--muted);font-size:14px}
+details.fachteil .themen{margin:2px 0 6px}
+.unterkopf{margin:10px 0 4px;font-size:13px;font-weight:600;color:var(--muted)}
+.schwliste{margin:0 0 6px;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:6px}
 .reihe{display:flex;gap:8px;flex-wrap:wrap}
 
 /* Quiz */
@@ -263,7 +275,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 2b6145</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 14284a</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>

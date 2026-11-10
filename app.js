@@ -394,9 +394,9 @@ let zettelSuche = '';
 function seiteFaecher(){
   const alle = FAECHER.reduce((n, f) => n + f.themen.length, 0);
   const gel = FAECHER.reduce((n, f) => n + f.themen.filter(t => ['sicher', 'gelernt', 'wackelig'].includes(t.status)).length, 0);
-  return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %) · Thema aufklappen für Lernzettel („Lang“) und Cheat Sheet („Kurz“)</p></section>
+  return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %) · „Kurz“ = Cheat Sheet, „Lang“ = Lernzettel</p></section>
   <input class="suche" id="suche" type="search" placeholder="In allen Lernzetteln suchen" value="${esc(zettelSuche)}" oninput="zettelSuche=this.value;fachInhalt()" autocomplete="off">
-  <div id="fachinhalt">${fachInhaltHtml()}</div>`;
+  <div id="fachinhalt" class="fachliste">${fachInhaltHtml()}</div>`;
 }
 function fachInhalt(){ $('#fachinhalt').innerHTML = fachInhaltHtml(); }
 function fachInhaltHtml(){
@@ -407,26 +407,27 @@ function fachInhaltHtml(){
     const gel = zahl('sicher') + zahl('gelernt') + zahl('wackelig');
     const bar = ['sicher', 'gelernt', 'wackelig'].map(s => `<span style="width:${zahl(s) / n * 100}%;background:var(--${s})"></span>`).join('');
     const tage = f.klausur ? tageBis(f.klausur) : null;
-    const themen = f.themen.map(t => {
-      const z = f.zettel.some(x => x.nr === t.nr), c = f.cheats.some(x => x.nr === t.nr);
-      return `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}
-        ${z || c ? `<span class="tknoepfe">${c ? `<button class="mini-knopf" type="button" onclick="zeigeZettel(${fi},'${t.nr}',true)">Kurz</button>` : ''}${z ? `<button class="mini-knopf" type="button" onclick="zeigeZettel(${fi},'${t.nr}',false)">Lang</button>` : ''}</span>` : ''}</span>
-        <span class="pill ${t.status}">${t.status}</span></li>`;
+    // 1. Lernzettel und Cheat Sheets (das Wichtigste)
+    const nrs = [...new Set([...f.zettel.map(z => z.nr), ...f.cheats.map(z => z.nr)])].sort();
+    const zettel = nrs.map(nr => {
+      const z = f.zettel.find(x => x.nr === nr), c = f.cheats.find(x => x.nr === nr);
+      return `<li><span class="nr">${nr}</span><span class="t">${esc((z || c).titel.replace(/^\d+\s*[_.:-]?\s*/, ''))}</span>
+        <span class="tknoepfe">${c ? `<button class="mini-knopf" type="button" onclick="zeigeZettel(${fi},'${nr}',true)">Kurz</button>` : ''}${z ? `<button class="mini-knopf" type="button" onclick="zeigeZettel(${fi},'${nr}',false)">Lang</button>` : ''}</span></li>`;
     }).join('');
-    const schw = f.schwaechen.length ? `<details class="schw"><summary>${f.schwaechen.length} Schwächen</summary><ul>${f.schwaechen.map(s => `<li>[${esc(s.nr)}] ${inline(s.text)}</li>`).join('')}</ul></details>` : '';
-    const nF = f.themen.filter(t => istFaellig(f, t)).length, nZ = new Set([...f.zettel, ...f.cheats].map(z => z.nr)).size;
+    // 2. Themen mit Status (weniger wichtig), Schwächen darunter
+    const themen = f.themen.map(t => `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}</span><span class="pill ${t.status}">${t.status}</span></li>`).join('');
+    const schw = f.schwaechen.length ? `<p class="unterkopf">Schwächen</p><ul class="schwliste">${f.schwaechen.map(s => `<li>[${esc(s.nr)}] ${inline(s.text)}</li>`).join('')}</ul>` : '';
+    const nF = f.themen.filter(t => istFaellig(f, t)).length;
+    const auf = k => offeneFaecher.has(fi + k) ? ' open' : '';
+    const merk = k => `ontoggle="this.open ? offeneFaecher.add('${fi + k}') : offeneFaecher.delete('${fi + k}')"`;
     return `<article class="fach" style="--f:${fachFarbe(f.name)}">
-      <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %) · ${zahl('wackelig')} wackelig</div></div>
+      <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %)</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>
-      <details class="schw themenauf"${offeneFaecher.has(fi) ? ' open' : ''} ontoggle="this.open ? offeneFaecher.add(${fi}) : offeneFaecher.delete(${fi})">
-        <summary>${f.themen.length} Themen${nF ? ` · ${nF} fällig` : ''}${nZ ? ` · ${nZ} mit Zettel` : ''}</summary>
-        <ul class="themen">${themen}</ul>
-      </details>
-      ${schw}
-      <div class="reihe">
-        <button class="zweit" type="button" onclick="quizOffen=new Set([${fi}]);runde=null;geheZu('quiz')"${f.fragen.length ? '' : ' disabled'}>Quiz (${f.fragen.length} Fragen)</button>
-      </div>
+      <details class="fachteil"${auf('z')} ${merk('z')}><summary>Lernzettel und Cheat Sheets <span class="zahl">${nrs.length}</span></summary>
+        ${nrs.length ? `<ul class="themen">${zettel}</ul>` : '<p class="sub">Noch keine Lernzettel.</p>'}</details>
+      <details class="fachteil neben"${auf('t')} ${merk('t')}><summary>Themen und Schwächen <span class="zahl">${f.themen.length}${nF ? ` · ${nF} fällig` : ''}</span></summary>
+        <ul class="themen">${themen}</ul>${schw}</details>
     </article>`;
   }).join('');
 }
