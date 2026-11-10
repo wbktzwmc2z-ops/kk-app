@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#f8f6f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#e0d5c6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#262423" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
@@ -353,12 +353,12 @@ main h2{color:var(--muted)}
 #leser .inhalt h3,#leser .inhalt h4{color:var(--fach)}
 #leser .leiste{color:var(--ink)}
 
-/* Verlauf: oben hell (geht in die Statusleiste über), nach unten dunkler */
+/* Verlauf: oben dunkel (geht in die Statusleiste über), nach unten heller */
 :root{--hell:#f8f6f2; --dunkel:#e0d5c6}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hell:#262423; --dunkel:#161515}}
 :root[data-theme="dark"]{--hell:#262423; --dunkel:#161515}
 html{background:var(--dunkel)}
-body{background:linear-gradient(180deg,var(--hell) 0,var(--dunkel) 100%);min-height:100vh}
+body{background:linear-gradient(180deg,var(--dunkel) 0,var(--hell) 100%);min-height:100vh}   /* oben dunkel wie die Statusleiste, nach unten hell */
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -403,7 +403,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 1c2595</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version b824aa</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
