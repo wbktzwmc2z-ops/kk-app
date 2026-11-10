@@ -357,6 +357,7 @@ function seiteHeute(){
     <h1>${new Date().toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'})}</h1>
     ${standHinweis()}
   </section>
+  ${nFragen ? tagesbilanzHtml() : ''}
   ${(() => { const v = nFragen ? vorschlaege() : [];
     if (!v.length) return nFragen ? `<p class="leer">Für heute ist alles wiederholt. Ein Quiz geht trotzdem: Quiz-Seite.</p>` : '<p class="leer">Noch keine Quizfragen vorhanden.</p>';
     return `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v[0], true)}
@@ -524,6 +525,28 @@ function vorschlagKnopf(v, haupt){
     ? `<button class="haupt" type="button" onclick="${aktion}"><span>${esc(titel)}<small>${esc(v.grund)}</small></span><span class="pfeil">→</span></button>`
     : `<li style="--f:${fachFarbe(v.f.name)};cursor:pointer" role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"><span class="tag">${esc(v.f.kurz)}${v.nr ? ' ' + esc(v.nr) : ''}</span><span class="txt">${esc(v.nr ? v.t.titel : 'gemischt')}<div class="klein">${esc(v.grund)}</div></span><span class="pfeil" aria-hidden="true">→</span></li>`;
 }
+/* Startseite: Tagesbilanz (Runden, Fragen, Quote, Fälliges geschafft, Tage in Folge) */
+function tagesbilanzHtml(){
+  let n = 0, r = 0;
+  const tage = new Set();
+  Object.values(verlauf).forEach(l => l.forEach(v => { const d = isoTag(new Date(v.t)); tage.add(d); if (d === HEUTE) { n++; if (v.r && v.s !== false) r++; else if (v.r) r += .5; } }));
+  const runden = speicher.get('meineRunden', []).filter(x => x.n > 0 && isoTag(new Date(x.start)) === HEUTE).length;
+  let faellig = 0, geschafft = 0;
+  FAECHER.forEach(f => f.themen.forEach(t => { if (istFaellig(f, t, true)) { faellig++; if (heuteGeuebt(f, t).erledigt) geschafft++; } }));
+  let serie = 0;
+  for (let d = new Date(); tage.has(isoTag(d)); d.setDate(d.getDate() - 1)) serie++;
+  const anteil = faellig ? geschafft / faellig : 0;
+  return `<section class="bilanz">
+    <div class="bilanz-zahlen">
+      <div><b>${runden || (n ? '–' : 0)}</b><span>${runden === 1 ? 'Runde' : 'Runden'}</span></div>
+      <div><b>${n}</b><span>Fragen</span></div>
+      <div><b>${n ? Math.round(r / n * 100) + ' %' : '–'}</b><span>richtig</span></div>
+      <div><b>${serie}</b><span>${serie === 1 ? 'Tag' : 'Tage'} in Folge</span></div>
+    </div>
+    ${faellig ? `<div class="bilanz-fort"><div class="bar"><span style="width:${anteil * 100}%;background:var(--sicher)"></span></div>
+      <p class="klein">${geschafft === faellig ? 'Alles Fällige für heute geschafft ✓' : `${geschafft} von ${faellig} fälligen Themen heute geschafft`}</p></div>` : ''}
+  </section>`;
+}
 /* Startseite: pro Fach, ob heute schon wiederholt, und was dort noch offen ist */
 function heuteFaecherHtml(){
   const zeilen = fachReihenfolge().map(x => {
@@ -655,7 +678,6 @@ function seiteQuiz(){
   return `<section><h1>Quiz</h1><p class="sub">Eine Runde, ein Fach. Nur Wiederholung zu Themen, die du schon gelernt hast. Fälliges und alte Fehler kommen zuerst, was du falsch hast, kommt am Ende der Runde noch einmal.</p></section>
   ${erstes ? `
   <section><h2>Länge</h2><div class="chips">${laengen}</div></section>
-  ${(v => v ? `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v, true)}</section>` : '')(vorschlaege()[0])}
   <section><h2>Fächer und Themen</h2><p class="sub">Fach antippen, dann ein einzelnes Thema wählen oder das ganze Fach gemischt.</p>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
