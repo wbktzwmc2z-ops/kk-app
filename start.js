@@ -48,7 +48,11 @@
     try {
       const v = await holeVersion();
       const alt = await hole('version');
-      if (alt && alt.v === v.v) return 'aktuell';
+      if (alt && alt.v === v.v) {
+        // nur der App-Code ist neu (Daten gleich): neue Kennung merken, dann lädt starten() die neue app.js
+        if (v.app && alt.app !== v.app) { await lege('version', Object.assign({}, alt, {app: v.app})); return laden ? 'neu' : 'aktuell'; }
+        return 'aktuell';
+      }
       if (!laden) { neueVersion = v; return 'verfuegbar'; }
       const r = await mitZeitlimit(fetch('daten.enc?v=' + encodeURIComponent(v.v), {cache: 'no-store'}), 30000);
       if (!r.ok) throw new Error('daten');
