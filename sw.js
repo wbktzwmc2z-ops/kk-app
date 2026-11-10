@@ -1,8 +1,8 @@
 /* Service Worker: hält die App-Dateien auf dem Handy, damit sie offline startet.
    App-Dateien: aus dem Speicher liefern und im Hintergrund erneuern.
-   Daten (daten.enc) und version.json laufen NICHT hierüber, die verwaltet start.js selbst. */
-const SPEICHER = 'kk-app-v2';
-const DATEIEN = ['./', 'index.html', 'start.js', 'salt.json', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
+   Daten (daten.enc), version.json und salt.json laufen NICHT hierüber, die verwaltet start.js selbst. */
+const SPEICHER = 'kk-app-v3';
+const DATEIEN = ['./', 'index.html', 'start.js', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(SPEICHER).then(c => c.addAll(DATEIEN)).then(() => self.skipWaiting()));
@@ -13,7 +13,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (/\/(daten\.enc|version\.json)$/.test(url.pathname)) return;   // nie zwischenspeichern
+  if (/\/(daten\.enc|version\.json|salt\.json)$/.test(url.pathname)) return;   // nie zwischenspeichern (start.js merkt sie sich selbst)
   e.respondWith((async () => {
     const c = await caches.open(SPEICHER);
     const istSeite = e.request.mode === 'navigate';
