@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#dc6f69" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#5a1f1d" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f5f3ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Lernen unterwegs</title>
@@ -306,6 +306,29 @@ h2{color:color-mix(in srgb,var(--accent-ink) 55%,var(--muted))}
 .vfach{display:inline-block;margin:0 0 6px;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--f) 82%,#000);color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .haupt > span:first-child{display:flex;flex-direction:column;align-items:flex-start}
 .vorschlag .tag{background:color-mix(in srgb,var(--f) 82%,#000);color:#fff;font-weight:700}
+
+/* ===== Farbpalette (Maxies Auswahl): Cream F5F3EF, Warm Taupe C8BBAE, Sage 8B9786, Burgundy 5A2A33 (Akzent),
+   Navy 2F3447, Mocha 4A352A, Stone 8E9096, Charcoal 1E1E1E. Steht ganz am Ende und gewinnt. ===== */
+:root{
+  --bg:#f5f3ef; --panel:#fffdfa; --ink:#1e1e1e; --muted:#8e9096; --line:#e6e0d8;
+  --accent:#5a2a33; --accent-soft:#efe4e3; --accent-ink:#5a2a33;
+  --offen:#d8d0c6; --gelernt:#7d879f; --wackelig:#c7a072; --sicher:#7f9474;
+  --kopf:#f5f3ef; --oben:#ebe4da;
+  --schatten:0 1px 2px rgba(30,30,30,.04),0 6px 20px rgba(74,53,42,.07);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1e1e1e; --panel:#262525; --ink:#f5f3ef; --muted:#8e9096; --line:#363434;
+  --accent:#c98a95; --accent-soft:#3a2a2d; --accent-ink:#d9a3ac;
+  --offen:#4a4644; --gelernt:#8f99b2; --wackelig:#d4ad7f; --sicher:#93a888;
+  --kopf:#1e1e1e; --oben:#2a2523}}
+:root[data-theme="dark"]{
+  --bg:#1e1e1e; --panel:#262525; --ink:#f5f3ef; --muted:#8e9096; --line:#363434;
+  --accent:#c98a95; --accent-soft:#3a2a2d; --accent-ink:#d9a3ac;
+  --offen:#4a4644; --gelernt:#8f99b2; --wackelig:#d4ad7f; --sicher:#93a888;
+  --kopf:#1e1e1e; --oben:#2a2523}
+html{background:var(--bg)}
+body{background:var(--bg) linear-gradient(180deg,var(--oben) 0,var(--bg) 380px) no-repeat}
+main{padding-top:18px}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -350,7 +373,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 6f3566</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version aa37a9</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
