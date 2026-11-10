@@ -659,7 +659,7 @@ const tagWort = d => d === HEUTE ? 'heute' : d === isoTag(new Date(Date.now() - 
 let quizOffen = null;   // aufgeklappte Fächer auf der Quiz-Seite (bis zum Neuladen)
 function quizFachHtml(x){
   const {f, fi} = x;
-  if (!quizOffen) quizOffen = new Set([fachReihenfolge()[0]?.fi]);
+  if (!quizOffen) quizOffen = new Set();   // anfangs alle Fächer zu
   const rang = t => istFaellig(f, t) ? 0 : t.status === 'wackelig' ? 1 : 2;
   const themen = f.themen.filter(t => f.fragen.some(q => q.nr === t.nr) || istFaellig(f, t))
     .sort((a, b) => rang(a) - rang(b) || String(a.nr).localeCompare(String(b.nr)));
