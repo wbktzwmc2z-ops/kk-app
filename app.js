@@ -599,6 +599,32 @@ const TYPNAME = {mc: 'Auswahl', wf: 'Richtig oder falsch', zuordnung: 'Zuordnen'
 /* Lücke „___“ im Fragetext sichtbar machen */
 const mitLuecke = html => html.split('___').join('<span class="luecke">&nbsp;?&nbsp;</span>');
 /* Antwort vergleichen: Groß/klein, Leerzeichen, Minus- und Anführungszeichen-Varianten egal */
+/* Tippfehler-Regel (offline, ohne KI): Fachbegriffe dürfen 1–2 Buchstaben abweichen, Code muss exakt stimmen.
+   Code = Sonderzeichen wie < > = " ; . ( ) $ oder Wörter mit Bindestrich/Unterstrich (font-weight, max_len).
+   Fragen mit "streng": true (z. B. Schreibweise ist der Lernpunkt) immer exakt. Die KI am Mac bewertet später nach. */
+const istCode = s => /[<>="'`;.,(){}\[\]$#\/\\:_@!?+*|&%]/.test(s) || /\w-\w/.test(s) || /\d/.test(s);
+function abstand(a, b){   // Buchstaben-Abstand (Einfügen, Löschen, Ersetzen, zwei vertauscht)
+  const m = a.length, n = b.length, d = Array.from({length: m + 1}, (_, i) => [i].concat(Array(n).fill(0)));
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[m][n];
+}
+function lueckePruefen(q, eingabe){
+  const loes = q.antworten || [];
+  if (loes.some(x => normal(x) === normal(eingabe))) return {richtig: true, tippfehler: false};
+  // streng: markiert, oder die Lücke steht in Code (Backticks, spitze/geschweifte Klammern im Fragetext)
+  if (q.streng || /[`<>{}]/.test(String(q.frage))) return {richtig: false, tippfehler: false};
+  const e = normal(eingabe);
+  const nah = loes.some(x => {
+    if (istCode(x) || istCode(eingabe)) return false;
+    const z = normal(x), grenze = z.length <= 4 ? 0 : z.length <= 8 ? 1 : 2;
+    return grenze > 0 && abstand(e, z) <= grenze;
+  });
+  return {richtig: nah, tippfehler: nah};
+}
 const normal = s => String(s ?? '').toLowerCase().replace(/[`\s]/g, '').replace(/[−–—]/g, '-').replace(/[„“”'‚‘’]/g, '"').replace(/[×*]/g, '·');
 
 function quizFrage(){
@@ -632,8 +658,8 @@ function quizFrage(){
   } else if (q.typ === 'luecke') {
     bereit = false;
     koerper = fertig
-      ? `<div class="eingabe-erg ${a.richtig ? 'richtig' : 'falsch'}"><span class="klein">Deine Antwort</span><code>${esc(a.wahl || '–')}</code></div>
-         ${a.richtig ? '' : `<div class="eingabe-erg richtig"><span class="klein">Richtig</span><code>${esc(q.antworten[0])}</code></div>`}`
+      ? `<div class="eingabe-erg ${a.richtig ? 'richtig' : 'falsch'}"><span class="klein">Deine Antwort${a.tippfehler ? ' (kleiner Tippfehler, zählt als richtig)' : ''}</span><code>${esc(a.wahl || '–')}</code></div>
+         ${a.richtig && !a.tippfehler ? '' : `<div class="eingabe-erg richtig"><span class="klein">Richtig</span><code>${esc(q.antworten[0])}</code></div>`}`
       : `<input id="lin" class="lueckenfeld" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort eintippen" oninput="bereitPruefen()" onkeydown="if(event.key==='Enter'&&this.value.trim())abschicken(null)">`;
   } else if (q.typ === 'karte') {
     brauchtSicherheit = false;
@@ -670,7 +696,7 @@ function quizFrage(){
           <button class="opt sendKnopf" type="button" onclick="abschicken(true)" ${bereit ? '' : 'disabled'}>Sicher</button>
           <button class="opt sendKnopf" type="button" onclick="abschicken(false)" ${bereit ? '' : 'disabled'}>Geraten</button></div></div>`;
   }
-  const rueck = fertig ? `<div class="rueck ${a.richtig ? 'ok' : 'bad'}"><b>${a.richtig ? (a.sicher === false ? 'Richtig, aber geraten. Kommt bald wieder.' : 'Richtig') : (a.sicher ? 'Nicht ganz, obwohl du sicher warst. Gut merken!' : 'Nicht ganz')}</b>${quizText(q.erklaerung || '')}${!a.richtig && !q._wdh ? '<div class="klein" style="margin-top:6px">Kommt am Ende der Runde noch einmal.</div>' : ''}</div>
+  const rueck = fertig ? `<div class="rueck ${a.richtig ? 'ok' : 'bad'}"><b>${a.richtig ? (a.tippfehler ? 'Richtig, nur ein kleiner Tippfehler. ' : '') + (a.sicher === false ? 'Richtig, aber geraten. Kommt bald wieder.' : a.tippfehler ? '' : 'Richtig') : (a.sicher ? 'Nicht ganz, obwohl du sicher warst. Gut merken!' : 'Nicht ganz')}</b>${quizText(q.erklaerung || '')}${!a.richtig && !q._wdh ? '<div class="klein" style="margin-top:6px">Kommt am Ende der Runde noch einmal.</div>' : ''}</div>
     <button class="haupt" type="button" onclick="weiter()"><span>${r.pos + 1 < r.fragen.length ? 'Weiter' : 'Ergebnis ansehen'}</span><span class="pfeil">→</span></button>` : '';
   const t = themaVon(q.fach, q.nr);
   const ersteZahl = r.fragen.filter(x => !x._wdh).length;
@@ -703,19 +729,19 @@ function bereitPruefen(){
 }
 function abschicken(sicher){
   const r = runde, q = r.fragen[r.pos];
-  let wahl, richtig;
+  let wahl, richtig, tipp = false;
   if (q.typ === 'mc' || q.typ === 'wf') { wahl = r.vorlaeufig.wahl; richtig = wahl === q.richtig; }
   else if (q.typ === 'fehler') { wahl = r.vorlaeufig.wahl; richtig = wahl === q.falsch; }
   else if (q.typ === 'zuordnung') { wahl = q.paare.map((_, k) => Number($('#z' + k).value)); richtig = wahl.every((w, k) => w === k); }
-  else if (q.typ === 'luecke') { wahl = $('#lin').value.trim(); richtig = (q.antworten || []).some(x => normal(x) === normal(wahl)); }
+  else if (q.typ === 'luecke') { wahl = $('#lin').value.trim(); const p = lueckePruefen(q, wahl); richtig = p.richtig; tipp = p.tippfehler; }
   else if (q.typ === 'reihenfolge') { wahl = r.reihe.slice(); richtig = wahl.every((si, k) => si === k); }
-  beantworte(wahl, richtig, q._wdh ? null : sicher);
+  beantworte(wahl, richtig, q._wdh ? null : sicher, tipp);
 }
 function selbst(gewusst){ beantworte(null, gewusst, null); }
 
-function beantworte(wahl, richtig, sicher){
+function beantworte(wahl, richtig, sicher, tippfehler){
   const r = runde, q = r.fragen[r.pos], zeit = new Date().toISOString();
-  r.antworten[r.pos] = {wahl, richtig, sicher};
+  r.antworten[r.pos] = {wahl, richtig, sicher, tippfehler: !!tippfehler};
   r.beantwortet = true; r.vorlaeufig = null;
   if (!q._wdh) {
     merkeAntwort(q.id, richtig, zeit, sicher);
@@ -741,7 +767,9 @@ function rundeDaten(){
     start: r.start, ende: new Date().toISOString(), wahl: r.wahl, importiert: false,
     antworten: r.fragen.map((q, i) => (!q._wdh && r.antworten[i]) ? {
       id: q.id, fach: q.fach, nr: q.nr, typ: q.typ, frage: String(q.frage).slice(0, 160),
-      richtig: r.antworten[i].richtig, sicher: r.antworten[i].sicher, spaeterRichtig: r.antworten[i].richtig ? null : spaeter(q.id), zeit: r.start
+      richtig: r.antworten[i].richtig, sicher: r.antworten[i].sicher,
+      ...(q.typ === 'luecke' ? {eingabe: String(r.antworten[i].wahl || '').slice(0, 120), tippfehler: !!r.antworten[i].tippfehler} : {}),
+      spaeterRichtig: r.antworten[i].richtig ? null : spaeter(q.id), zeit: r.start
     } : null).filter(Boolean)
   };
 }
@@ -767,7 +795,7 @@ function rundeLokalMerken(){
   const eintrag = {id: runde.id, start: d.start, wahl: d.wahl, n: d.antworten.length,
     richtig: d.antworten.filter(a => a.richtig).length,
     themen: [...new Set(d.antworten.map(a => a.nr))].sort(),
-    fragen: runde.fragen.map((q, i) => (!q._wdh && runde.antworten[i]) ? {id: q.id, r: runde.antworten[i].richtig, s: runde.antworten[i].sicher, w: kurzWahl(runde.antworten[i].wahl)} : null).filter(Boolean),
+    fragen: runde.fragen.map((q, i) => (!q._wdh && runde.antworten[i]) ? {id: q.id, r: runde.antworten[i].richtig, s: runde.antworten[i].sicher, w: kurzWahl(runde.antworten[i].wahl), t: !!runde.antworten[i].tippfehler} : null).filter(Boolean),
     ok: runde.gespeichert === 'ok' || (alt && alt.ok) || false};
   speicher.set('meineRunden', l.filter(x => x.id !== runde.id).concat([eintrag]).slice(-300));
 }
@@ -794,20 +822,25 @@ const offeneRundenAuf = new Set(), offeneRundenFach = new Set();
 function rundeFragen(x){
   if (x.fragen) return x.fragen;
   const o = speicher.get('offeneRunden', []).find(y => y.id === x.id);
-  return o ? (o.antworten || []).map(a => ({id: a.id, r: a.richtig, s: a.sicher, w: null})) : null;
+  return o ? (o.antworten || []).map(a => ({id: a.id, r: a.richtig, s: a.sicher, w: a.eingabe ?? null, t: !!a.tippfehler})) : null;
 }
+const KI_URTEIL = {richtig: ['sicher', 'KI: eigentlich richtig'], fast: ['gelernt', 'KI: fast richtig'], verwechselt: ['wackelig', 'KI: verwechselt'], falsch: ['wackelig', 'KI: falsch']};
 function rundeDetailHtml(x){
   const fr = rundeFragen(x);
+  const ki = (D && D.bewertungen) || {};
   if (!fr) return '<p class="sub">Die einzelnen Fragen dieser Runde sind auf diesem Gerät nicht gespeichert.</p>';
   return `<ul class="rfragen">${fr.map(e => {
     const q = alleFragen.find(y => y.id === e.id);
     if (!q) return `<li class="${e.r ? 'ok' : 'bad'}"><span class="haken ${e.r ? 'ja' : 'nein'}">${e.r ? '✓' : '✗'}</span><span class="txt klein">Diese Frage gibt es nicht mehr.</span></li>`;
-    const deine = !e.r ? deineHtml(q, e.w) : '';
-    const marke = e.r ? (e.s === false ? ' <span class="pill wackelig">geraten</span>' : '') : (e.s ? ' <span class="pill wackelig">war sicher</span>' : '');
+    const deine = (!e.r || e.t) ? deineHtml(q, e.w) : '';
+    const b = ki[x.id + '|' + e.id], u = b && KI_URTEIL[b.u];
+    const marke = (e.r ? (e.s === false ? ' <span class="pill wackelig">geraten</span>' : '') : (e.s ? ' <span class="pill wackelig">war sicher</span>' : ''))
+      + (e.t ? ' <span class="pill gelernt">Tippfehler</span>' : '') + (u ? ` <span class="pill ${u[0]}">${u[1]}</span>` : '');
     return `<li class="${e.r ? 'ok' : 'bad'}"><span class="haken ${e.r ? 'ja' : 'nein'}">${e.r ? '✓' : '✗'}</span><span class="txt">
       <span class="tag">${esc(q.nr)}</span> ${mitLuecke(quizText(q.frage))}${marke}
       ${deine ? `<div class="klein">Deine Antwort: ${deine}</div>` : ''}
       <div class="klein"><b>Richtig:</b> ${loesungHtml(q)}</div>
+      ${b && b.k ? `<div class="erkl"><b>KI:</b> ${esc(b.k)}</div>` : ''}
       ${q.erklaerung ? `<div class="erkl">${quizText(q.erklaerung)}</div>` : ''}</span></li>`;
   }).join('')}</ul>`;
 }
