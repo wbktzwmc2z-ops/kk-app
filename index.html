@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#f5f3ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#e0d6c8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
@@ -329,6 +329,13 @@ h2{color:color-mix(in srgb,var(--accent-ink) 55%,var(--muted))}
 html{background:var(--bg)}
 body{background:var(--bg) linear-gradient(180deg,var(--oben) 0,var(--bg) 380px) no-repeat}
 main{padding-top:18px}
+
+/* kräftigerer Hintergrund, fettere Kopfzeile */
+:root{--bg:#ece7df; --oben:#e0d6c8; --muted:#6f6f73; --line:#e0d8cd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1e1e1e; --oben:#2a2523; --muted:#9a9ca1; --line:#363434}}
+:root[data-theme="dark"]{--bg:#1e1e1e; --oben:#2a2523; --muted:#9a9ca1; --line:#363434}
+h1{font-weight:750}
+.bilanz-zahlen b{font-weight:750}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -373,7 +380,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version f32d1f</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version cb0512</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
