@@ -397,7 +397,18 @@ function seiteFaecher(){
   const gel = FAECHER.reduce((n, f) => n + f.themen.filter(t => ['sicher', 'gelernt', 'wackelig'].includes(t.status)).length, 0);
   return `<section><h1>Fächer</h1><p class="sub">${gel} von ${alle} Themen gelernt (${alle ? Math.round(gel / alle * 100) : 0} %) </p></section>
   <input class="suche" id="suche" type="search" placeholder="In allen Lernzetteln suchen" value="${esc(zettelSuche)}" oninput="zettelSuche=this.value;fachInhalt()" autocomplete="off">
+  <div class="chips fachsprung">${FAECHER.map((f, fi) => `<button class="chip" type="button" style="--f:${fachFarbe(f.name)}" onclick="springeZuFach(${fi})">${esc(f.kurz)}</button>`).join('')}</div>
   <div id="fachinhalt" class="fachliste">${fachInhaltHtml()}</div>`;
+}
+/* Schnellwahl oben: zum Fach springen und seine Lernzettel aufklappen */
+function springeZuFach(fi){
+  if (zettelSuche.trim()) { zettelSuche = ''; $('#suche').value = ''; fachInhalt(); }
+  offeneFaecher.add(fi + 'z');
+  const karte = $('#fach-' + fi);
+  if (!karte) return;
+  const teil = karte.querySelector('details.fachteil');
+  if (teil) teil.open = true;
+  karte.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 function fachInhalt(){ $('#fachinhalt').innerHTML = fachInhaltHtml(); }
 function fachInhaltHtml(){
@@ -421,7 +432,7 @@ function fachInhaltHtml(){
     const nF = f.themen.filter(t => istFaellig(f, t)).length;
     const auf = k => offeneFaecher.has(fi + k) ? ' open' : '';
     const merk = k => `ontoggle="this.open ? offeneFaecher.add('${fi + k}') : offeneFaecher.delete('${fi + k}')"`;
-    return `<article class="fach" style="--f:${fachFarbe(f.name)}">
+    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)}">
       <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %)</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>
