@@ -353,7 +353,7 @@ function seiteHeute(){
   const nochTage = klausuren.length ? Math.min(...klausuren) : null;
   return `
   <section>
-    <p class="sub">Lernen unterwegs${nochTage !== null ? ` · noch ${nochTage} Tage bis zur ersten Klausur` : ''}</p>
+    ${nochTage !== null ? `<p class="sub">Noch ${nochTage} Tage bis zur ersten Klausur</p>` : ''}
     <h1>${new Date().toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'})}</h1>
     ${standHinweis()}
   </section>
@@ -678,7 +678,7 @@ function seiteQuiz(){
   return `<section><h1>Quiz</h1><p class="sub">Eine Runde, ein Fach. Nur Wiederholung zu Themen, die du schon gelernt hast. Fälliges und alte Fehler kommen zuerst, was du falsch hast, kommt am Ende der Runde noch einmal.</p></section>
   ${erstes ? `
   <section><h2>Länge</h2><div class="chips">${laengen}</div></section>
-  <section><h2>Fächer und Themen</h2><p class="sub">Fach antippen, dann ein einzelnes Thema wählen oder das ganze Fach gemischt.</p>
+  <section><h2>Fächer und Themen</h2>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
   <p class="sub">${dbStatus === 'ok' ? 'Ergebnisse werden gespeichert und beim nächsten Chat am Mac in deinen Lernstand übernommen.' : dbStatus === 'pruefe' ? 'Verbindung wird geprüft …' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende kannst du sie kopieren.'}</p>
