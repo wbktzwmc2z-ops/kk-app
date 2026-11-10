@@ -342,6 +342,16 @@ h1{font-weight:750}
 .fach::before{height:5px}
 .chip.gesamt{display:block;width:100%;margin:-6px 0 14px;padding:10px 14px;text-align:center;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--panel)}
 .chip.gesamt[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
+
+/* Schrift schwarz, Rot/Burgunder nur als Akzent (Zahlen, „fällig“, aktiver Tab) */
+h1{color:var(--ink)}
+main h2{color:var(--muted)}
+.haupt .pfeil{background:var(--ink)}
+.chip.gesamt[aria-pressed="true"]{background:color-mix(in srgb,var(--ink) 8%,var(--panel));color:var(--ink);border-color:color-mix(in srgb,var(--ink) 25%,transparent)}
+/* Lernzettel und Cheat Sheets: Überschriften schwarz, Unterüberschriften in Fachfarbe, Kästen (z. B. Klausurfalle) wie gehabt */
+#leser .inhalt h1,#leser .inhalt h2{color:var(--ink)}
+#leser .inhalt h3,#leser .inhalt h4{color:var(--fach)}
+#leser .leiste{color:var(--ink)}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -386,7 +396,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 33c3a7</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 5ad368</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
