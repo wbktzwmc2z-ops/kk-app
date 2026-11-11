@@ -556,10 +556,32 @@ function zeigeZettel(fi, nr, kurz){
   const inhalt = $('#leserInhalt');
   inhalt.style.setProperty('--fach', fachFarbe(f.name));
   inhalt.innerHTML = md(z.text);
-  $('#leser').hidden = false; $('#leser').scrollTop = 0;
+  $('#leser').hidden = false; $('#leser').scrollTop = 0; leseStart = Date.now();
   document.body.style.overflow = 'hidden';
 }
-function leserZu(){ $('#leser').hidden = true; document.body.style.overflow = ''; window.scrollTo(0, leserScroll); }
+function leserZu(){ leseZeitBuchen(); $('#leser').hidden = true; document.body.style.overflow = ''; window.scrollTo(0, leserScroll); }
+/* Lesezeit in Lernzettel/Cheat Sheet: nur solange einer offen und die App im Vordergrund ist, höchstens 20 Min am Stück.
+   Pro Tag gesammelt und (in der Offline-App) als eigener Eintrag „lesen-<Tag>“ über den Briefkasten zum Mac geschickt. */
+let leseStart = null;
+function leseZeitBuchen(){
+  if (!leseStart) return;
+  const sek = Math.min(1200, (Date.now() - leseStart) / 1000);
+  leseStart = null;
+  if (sek < 5) return;
+  const tag = HEUTE, l = speicher.get('lesezeit', {});
+  l[tag] = Math.round((l[tag] || 0) + sek);
+  speicher.set('lesezeit', l);
+  if (window.__KK) {
+    const offen = speicher.get('offeneRunden', []).filter(x => x.id !== 'lesen-' + tag);
+    offen.push({id: 'lesen-' + tag, typ: 'lesen', tag, start: tag + 'T00:00:00', ende: new Date().toISOString(), sekunden: l[tag], antworten: []});
+    speicher.set('offeneRunden', offen.slice(-120));
+    if (window.__KK.senden) window.__KK.senden();
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') leseZeitBuchen();
+  else if (!$('#leser').hidden) leseStart = Date.now();
+});
 $('#leserZu').addEventListener('click', leserZu);
 
 /* ---------- Quiz ---------- */
@@ -720,7 +742,7 @@ function quizStarten(wahl, n, nr){
   if (!fragen.length) { runde = null; geheZu('quiz'); return; }
   runde = {
     id: new Date().toISOString().replace(/[:.]/g, '-') + '-' + Math.random().toString(36).slice(2, 6),
-    start: new Date().toISOString(), wahl: wahl === 'alle' ? 'alle' : FAECHER[wahl].name,
+    start: new Date().toISOString(), wahl: wahl === 'alle' ? 'alle' : FAECHER[wahl].name, aktivSek: 0, letzteAktion: Date.now(),
     fragen, mix: fragen.map(mischung), pos: 0, antworten: [], beantwortet: false, gespeichert: null,
     vorlaeufig: null, reihe: [], aufgedeckt: false
   };
@@ -925,6 +947,9 @@ function selbst(gewusst){ beantworte(null, gewusst, null); }
 
 function beantworte(wahl, richtig, sicher, tippfehler){
   const r = runde, q = r.fragen[r.pos], zeit = new Date().toISOString();
+  // aktive Lernzeit: Zeit seit der letzten Antwort, höchstens 3 Min pro Frage (Pausen zählen nicht)
+  r.aktivSek = (r.aktivSek || 0) + Math.min(180, Math.max(0, (Date.now() - (r.letzteAktion || Date.now())) / 1000));
+  r.letzteAktion = Date.now();
   r.antworten[r.pos] = {wahl, richtig, sicher, tippfehler: !!tippfehler};
   r.beantwortet = true; r.vorlaeufig = null;
   if (!q._wdh) {
@@ -951,7 +976,7 @@ function rundeDaten(){
   const r = runde;
   const spaeter = id => r.fragen.some((x, i) => x._wdh && x.id === id && r.antworten[i] && r.antworten[i].richtig);
   return {
-    start: r.start, ende: new Date().toISOString(), wahl: r.wahl, importiert: false,
+    start: r.start, ende: new Date().toISOString(), wahl: r.wahl, importiert: false, aktivSek: Math.round(r.aktivSek || 0),
     antworten: r.fragen.map((q, i) => (!q._wdh && r.antworten[i]) ? {
       id: q.id, fach: q.fach, nr: q.nr, typ: q.typ, frage: String(q.frage).slice(0, 160),
       richtig: r.antworten[i].richtig, sicher: r.antworten[i].sicher,
