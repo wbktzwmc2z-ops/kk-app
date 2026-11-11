@@ -772,7 +772,7 @@ function punkte(q){
   return p;
 }
 function fragenWaehlen(wahl, n, nr){
-  const pool = alleFragen.filter(q => (wahl === 'alle' || q.fach === FAECHER[wahl].name) && (!nr || q.nr === nr));
+  const pool = alleFragen.filter(q => (wahl === 'alle' || q.fach === FAECHER[wahl].name) && (!nr || q.nr === nr) && !istGemeldet(q));
   const sortiert = pool.map(q => ({q, p: punkte(q)})).sort((a, b) => b.p - a.p);
   const proThema = {}, gewaehlt = [];
   const grenze = nr ? n : wahl === 'alle' ? 3 : 4;
@@ -879,6 +879,49 @@ function abstand(a, b){   // Buchstaben-Abstand (Einfügen, Löschen, Ersetzen, 
   }
   return d[m][n];
 }
+/* Sonderzeichen für Lückenfragen, die man am Handy schlecht tippen kann (σ, μ, √ …). Feste Auswahl, damit die Leiste nichts verrät. */
+const SYMBOLE = ['σ', 'μ', '√', '²', 'x̄', '≤', '≥', '≠', '±', 'Σ', 'λ', 'α'];
+function symbolLeiste(q){
+  const sonder = (q.antworten || []).join('').replace(/[\u0300-\u036f]/g, '').match(/[^\x00-\x7FäöüÄÖÜß„“”‚‘’–—−·×]/g) || [];
+  if (!sonder.length && !/Quantitative|Entscheidung/.test(q.fach)) return '';
+  const l = [...new Set(SYMBOLE.concat(sonder))];
+  return `<div class="symbole">${l.map(z => `<button type="button" class="sym" onmousedown="event.preventDefault()" onclick="zeichenEinfuegen('${z}')">${z}</button>`).join('')}</div>
+    <p class="klein symbolhinweis">Antippen oder ausschreiben: sigma, mu, wurzel n, s^2</p>`;
+}
+function zeichenEinfuegen(z){
+  const f = $('#lin'); if (!f) return;
+  const a = f.selectionStart ?? f.value.length, b = f.selectionEnd ?? f.value.length;
+  f.value = f.value.slice(0, a) + z + f.value.slice(b);
+  f.focus(); f.setSelectionRange(a + z.length, a + z.length);
+  bereitPruefen();
+}
+/* Frage melden: nicht tippbar, falsch oder unklar. Zählt nicht, kommt nicht wieder, bis sie am Mac überarbeitet wurde. */
+const MELDEGRUENDE = ['Antwort kann ich nicht eintippen', 'Frage oder Lösung stimmt nicht', 'Frage ist unklar'];
+const frageFingerabdruck = q => JSON.stringify([q.frage, q.antworten, q.optionen, q.richtig, q.paare, q.antwort, q.schritte, q.falsch]);
+const istGemeldet = q => speicher.get('gemeldet', {})[q.id] === frageFingerabdruck(q);
+function meldenHtml(){
+  return `<button class="melden" id="meldenKnopf" type="button" onclick="this.hidden=true;const b=$('#meldebox');b.hidden=false;b.scrollIntoView({block:'nearest',behavior:'smooth'})">⚑ Frage melden</button>
+  <div class="meldebox" id="meldebox" hidden><p class="sub">Was passt nicht? Die Frage zählt dann nicht und wird am Mac überarbeitet.</p>
+    ${MELDEGRUENDE.map((g, k) => `<button class="zweit" type="button" onclick="frageMelden(${k})">${g}</button>`).join('')}
+    <button class="melden" type="button" onclick="$('#meldebox').hidden=true;$('#meldenKnopf').hidden=false">Abbrechen</button></div>`;
+}
+function meldeToast(t){
+  const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d);
+  setTimeout(() => d.remove(), 2600);
+}
+function frageMelden(k){
+  const r = runde, q = r.fragen[r.pos], a = r.antworten[r.pos], feld = $('#lin');
+  (r.meldungen = r.meldungen || []).push({id: q.id, fach: q.fach, nr: q.nr, typ: q.typ, frage: String(q.frage).slice(0, 200), grund: MELDEGRUENDE[k],
+    eingabe: String(feld ? feld.value : (a && typeof a.wahl === 'string' ? a.wahl : '')).slice(0, 120), zeit: new Date().toISOString()});
+  // Antworten zu dieser Frage aus der Runde und dem Verlauf nehmen, Wiederholungen danach streichen
+  r.fragen.forEach((x, i) => { if (x.id === q.id && i <= r.pos) r.antworten[i] = null; });
+  for (let i = r.fragen.length - 1; i > r.pos; i--) if (r.fragen[i].id === q.id) { r.fragen.splice(i, 1); r.mix.splice(i, 1); r.antworten.splice(i, 1); }
+  if (verlauf[q.id]) { verlauf[q.id] = verlauf[q.id].filter(v => v.rid !== r.id); speicher.set('verlauf', verlauf); }
+  const g = speicher.get('gemeldet', {}); g[q.id] = frageFingerabdruck(q); speicher.set('gemeldet', g);
+  rundeLokalMerken(); rundeSichern();
+  meldeToast('Danke, gemeldet. Die Frage wird am Mac überarbeitet.');
+  weiter();
+}
 function lueckePruefen(q, eingabe){
   const loes = q.antworten || [];
   if (loes.some(x => normal(x) === normal(eingabe))) return {richtig: true, tippfehler: false};
@@ -892,7 +935,8 @@ function lueckePruefen(q, eingabe){
   });
   return {richtig: nah, tippfehler: nah};
 }
-const normal = s => String(s ?? '').toLowerCase().replace(/[`\s]/g, '').replace(/[−–—]/g, '-').replace(/[„“”'‚‘’]/g, '"').replace(/[×*]/g, '·');
+const GRIECHISCH = {'σ':'sigma','ς':'sigma','μ':'mu','λ':'lambda','α':'alpha','β':'beta','π':'pi','ρ':'rho','χ':'chi','δ':'delta','ε':'epsilon','θ':'theta','√':'wurzel','²':'^2','³':'^3','≤':'<=','≥':'>=','≠':'!='};
+const normal = s => String(s ?? '').toLowerCase().replace(/[σςμλαβπρχδεθ√²³≤≥≠]/g, z => GRIECHISCH[z]).replace(/[`\s]/g, '').replace(/[−–—]/g, '-').replace(/[„“”'‚‘’]/g, '"').replace(/[×*]/g, '·');
 
 function quizFrage(){
   const r = runde, q = r.fragen[r.pos], i = r.pos, mix = r.mix[i];
@@ -927,7 +971,7 @@ function quizFrage(){
     koerper = fertig
       ? `<div class="eingabe-erg ${a.richtig ? 'richtig' : 'falsch'}"><span class="klein">Deine Antwort${a.tippfehler ? ' (kleiner Tippfehler, zählt als richtig)' : ''}</span><code>${esc(a.wahl || '–')}</code></div>
          ${a.richtig && !a.tippfehler ? '' : `<div class="eingabe-erg richtig"><span class="klein">Richtig</span><code>${esc(q.antworten[0])}</code></div>`}`
-      : `<input id="lin" class="lueckenfeld" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort eintippen" oninput="bereitPruefen()" onkeydown="if(event.key==='Enter'&&this.value.trim())abschicken(null)">`;
+      : `<input id="lin" class="lueckenfeld" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Antwort eintippen" oninput="bereitPruefen()" onkeydown="if(event.key==='Enter'&&this.value.trim())abschicken(null)">${symbolLeiste(q)}`;
   } else if (q.typ === 'karte') {
     brauchtSicherheit = false;
     koerper = r.aufgedeckt || fertig
@@ -976,6 +1020,7 @@ function quizFrage(){
     ${senden}
   </div>
   ${rueck}
+  ${meldenHtml()}
   <button class="zweit" type="button" onclick="abbrechen()">Runde beenden</button>`;
 }
 
@@ -1038,6 +1083,7 @@ function rundeDaten(){
   const spaeter = id => r.fragen.some((x, i) => x._wdh && x.id === id && r.antworten[i] && r.antworten[i].richtig);
   return {
     start: r.start, ende: new Date().toISOString(), wahl: r.wahl, importiert: false, aktivSek: Math.round(r.aktivSek || 0),
+    ...(r.meldungen && r.meldungen.length ? {meldungen: r.meldungen} : {}),
     antworten: r.fragen.map((q, i) => (!q._wdh && r.antworten[i]) ? {
       id: q.id, fach: q.fach, nr: q.nr, typ: q.typ, frage: String(q.frage).slice(0, 160),
       richtig: r.antworten[i].richtig, sicher: r.antworten[i].sicher,

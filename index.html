@@ -565,6 +565,16 @@ nav.tabs a{font-size:10.5px;letter-spacing:-.01em}
 /* Fächer-Umschalter: Kürzel in der Fachfarbe */
 .fachsprung .chip,.fachsprung .chip[aria-pressed="true"]{color:var(--f)}
 @media (prefers-color-scheme:dark){.fachsprung .chip,.fachsprung .chip[aria-pressed="true"]{color:color-mix(in srgb,var(--f) 55%,#fff)}}
+
+/* Sonderzeichen-Leiste und Melden */
+.symbole{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sym{min-width:40px;height:40px;padding:0 10px;border-radius:10px;border:0;background:var(--accent-soft);color:var(--accent);font:600 17px/1 var(--mono);cursor:pointer}
+.sym:active{transform:scale(.94)}
+.symbolhinweis{margin-top:6px;color:var(--muted)}
+.melden{display:block;margin:10px auto 4px;background:none;border:0;color:var(--muted);font-size:13px;padding:8px 12px;cursor:pointer}
+.meldebox[hidden]{display:none}
+.meldebox{margin:10px 0;padding:12px;border-radius:16px;background:var(--panel);box-shadow:var(--schatten);display:grid;gap:8px}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:rgba(28,28,30,.92);color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;max-width:86vw;text-align:center}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -609,7 +619,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version c85816</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version e02809</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
