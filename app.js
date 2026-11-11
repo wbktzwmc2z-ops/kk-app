@@ -392,6 +392,7 @@ function seiteHeute(){
     <h1>${new Date().toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'})}</h1>
     ${standHinweis()}
   </section>
+  ${window.__KK && !window.__KK.briefkastenAn() ? `<button class="zweit warnhinweis" type="button" onclick="geheZu('einstellungen')">Übertragung zum Mac ist nicht eingerichtet. Hier antippen und unter „Übertragung zum Mac“ den Schlüssel einfügen.</button>` : ''}
   ${nFragen ? tagesbilanzHtml() : ''}
   ${(() => { const v = nFragen ? vorschlaege() : [];
     if (!v.length) return nFragen ? `<p class="leer">Für heute ist alles wiederholt. Ein Quiz geht trotzdem: Quiz-Seite.</p>` : '<p class="leer">Noch keine Quizfragen vorhanden.</p>';
@@ -728,7 +729,7 @@ function seiteQuiz(){
   <section><h2>Fächer und Themen</h2>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
-  <p class="sub">${dbStatus === 'ok' ? 'Ergebnisse werden gespeichert und beim nächsten Chat am Mac in deinen Lernstand übernommen.' : dbStatus === 'pruefe' ? 'Verbindung wird geprüft …' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende kannst du sie kopieren.'}</p>
+  <p class="sub">${window.__KK ? (window.__KK.briefkastenAn() ? 'Ergebnisse gehen automatisch zum Mac und kommen dort in deinen Lernstand.' : 'Übertragung zum Mac nicht eingerichtet (Einstellungen).') : dbStatus === 'ok' ? 'Ergebnisse werden gespeichert und beim nächsten Chat am Mac in deinen Lernstand übernommen.' : dbStatus === 'pruefe' ? 'Verbindung wird geprüft …' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende kannst du sie kopieren.'}</p>
   ${meineRundenHtml()}
   ${offline.length && dbStatus !== 'ok' && !(window.__KK && window.__KK.briefkastenAn && window.__KK.briefkastenAn()) ? `<section><h2>Noch nicht übertragen (von Hand)</h2><p class="sub">Ohne Briefkasten-Schlüssel (unten auf der Startseite unter „App“) kommt das nur per Kopieren zum Mac.</p><textarea class="kopie" id="kopieAlt" readonly>${esc(offline.map(rundeAlsText).join('\n\n'))}</textarea><div class="reihe"><button class="zweit" type="button" onclick="kopieren('kopieAlt')">Text kopieren</button><button class="zweit" type="button" onclick="speicher.set('offeneRunden',[]);render()">Liste leeren</button></div></section>` : ''}`;
 }
@@ -1043,8 +1044,11 @@ function quizEnde(){
   const falsche = erste.filter(x => !x.a.richtig);
   const sicherFalsch = falsche.filter(x => x.a.sicher).length;
   const nachgeholt = falsche.filter(x => r.fragen.some((y, i) => y._wdh && y.id === x.q.id && r.antworten[i] && r.antworten[i].richtig)).length;
+  const bk = window.__KK && window.__KK.briefkastenAn && window.__KK.briefkastenAn();
   const gesichert = r.gespeichert === 'ok'
     ? 'Gespeichert. Beim nächsten Chat am Mac kommt das in deinen Lernstand.'
+    : bk ? 'Gespeichert. Wird automatisch zum Mac übertragen, sobald Internet da ist (unter „Meine Runden“ steht dann „übertragen“).'
+    : window.__KK ? 'Die Übertragung zum Mac ist auf diesem Handy nicht eingerichtet: Einstellungen → „Übertragung zum Mac“ → Schlüssel einfügen. Bis dahin bleibt das Ergebnis hier gespeichert.'
     : 'Keine Verbindung zur Ablage: Ergebnis bleibt auf dem Handy. Kopier den Text und schick ihn mir in der Claude-App.';
   const zeilen = [
     geraten ? `${geraten} davon geraten, die kommen bald wieder` : '',
@@ -1055,7 +1059,7 @@ function quizEnde(){
     ${zeilen.length ? `<ul class="ende-info">${zeilen.map(z => `<li>${esc(z)}</li>`).join('')}</ul>` : ''}</section>
   ${falsche.length ? `<section><h2>Noch mal anschauen</h2><ul class="liste">${falsche.map(({q, a}) => `<li style="--f:${fachFarbe(q.fach)}"><span class="tag">${esc(q.kurz)} ${esc(q.nr)}</span><span class="txt">${mitLuecke(quizText(q.frage))}${a.sicher ? ' <span class="pill wackelig">war sicher</span>' : ''}<div class="klein">${quizText(q.erklaerung || '')}</div></span></li>`).join('')}</ul></section>` : '<p class="leer">Alles im ersten Versuch richtig. Diese Fragen kommen erst in ein paar Tagen wieder.</p>'}
   <p class="sub">${gesichert}</p>
-  ${r.gespeichert === 'ok' ? '' : `<textarea class="kopie" id="kopieNeu" readonly>${esc(rundeAlsText(rundeDaten()))}</textarea><button class="zweit" type="button" onclick="kopieren('kopieNeu')">Text kopieren</button>`}
+  ${r.gespeichert === 'ok' || bk ? '' : `<textarea class="kopie" id="kopieNeu" readonly>${esc(rundeAlsText(rundeDaten()))}</textarea><button class="zweit" type="button" onclick="kopieren('kopieNeu')">Text kopieren</button>`}
   ${(v => v ? `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v, true)}</section>` : '<p class="leer">Für heute ist alles Fällige wiederholt.</p>')(vorschlaege()[0])}
   <button class="zweit" type="button" style="width:100%" onclick="quizStarten(quizWahl, quizLaenge)">Noch eine Runde: ${esc(FAECHER[quizWahl]?.name || '')}${quizThema ? ' gemischt' : ''}</button>
   <div class="reihe"><button class="zweit" type="button" onclick="runde=null;render();window.scrollTo(0,0)">Anderes Fach wählen</button>
