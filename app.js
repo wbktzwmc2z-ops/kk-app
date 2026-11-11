@@ -285,6 +285,18 @@ const themaVon = (fach, nr) => (FAECHER.find(f => f.name === fach)?.themen || []
    - davon mindestens 80 % im ersten Versuch sicher richtig (Geratenes zählt nicht),
    - jeder Fehler später richtig nachgeholt wurde,
    - mindestens 2 Fragen selbst abgerufen wurden (Lücke oder Karte), sofern das Thema so viele hat. */
+/* Tag 1 nach neuem Stoff (verteilt wiederholen): Thema zuletzt vor 1–2 Tagen gelernt, Wdh 0,
+   seit dem Lerntag noch keine 3 verschiedenen Fragen im Quiz → kurz abfragen. Gleiche Regel wie das Dashboard (Lernplan abhaken). */
+const TAG1_FRAGEN = 3;
+function tag1Stand(f, t){
+  if (!t.zuletzt || String(t.wdh) !== '0' || t.status === 'offen') return null;
+  const seit = -tageBis(t.zuletzt);
+  if (seit < 1 || seit > 2) return null;
+  const qs = alleFragen.filter(q => q.fach === f.name && q.nr === t.nr);
+  const ziel = Math.min(TAG1_FRAGEN, qs.length);
+  const n = qs.filter(q => (verlauf[q.id] || []).some(v => isoTag(new Date(v.t)) > t.zuletzt)).length;
+  return {n, ziel, fertig: n >= ziel};
+}
 function heuteGeuebt(f, t){
   const qs = alleFragen.filter(q => q.fach === f.name && q.nr === t.nr);
   const ziel = Math.min(6, qs.length), freiZiel = Math.min(2, qs.filter(q => q.typ === 'luecke' || q.typ === 'karte').length);
@@ -641,6 +653,8 @@ function vorschlaege(){
         return;
       }
       const g = heuteGeuebt(f, t), faellig = istFaellig(f, t), seit = t.naechsteWdh ? -tageBis(t.naechsteWdh) : 0;
+      const t1 = tag1Stand(f, t);
+      if (t1 && !t1.fertig && !faellig) { l.push({fi, f, nr: t.nr, t, anzahl, punkte: 310 + klausurDruck, grund: `Tag 1: am ${datumKurz(t.zuletzt)} neu gelernt, kurz abfragen` + (t1.n ? ` (${t1.n} von ${t1.ziel} Fragen)` : '')}); return; }
       if (faellig && g.durch) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 100 + klausurDruck, grund: `heute ${Math.round(g.r / g.n * 100)} % im ersten Versuch, morgen nochmal`});
       else if (faellig && g.n > 0) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 320 + klausurDruck, grund: `heute angefangen, es fehlt: ${g.fehlt.join(', ')}`});
       else if (faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 300 + seit * 5 + klausurDruck, grund: (t.naechsteWdh ? `fällig seit ${datumKurz(t.naechsteWdh)}` : 'fällig') + (imPlanHeute(f) && !heuteFach(f).n ? ' · laut Plan heute dran' : '')});
