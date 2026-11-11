@@ -774,6 +774,7 @@ function seiteQuiz(){
   <section><h2>Fächer und Themen</h2>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
+  ${kalibrierungHtml()}
   ${meineRundenHtml()}
   ${offline.length && dbStatus !== 'ok' && !window.__KK ? `<section><h2>Noch nicht übertragen (von Hand)</h2><p class="sub">Ohne Briefkasten-Schlüssel (unten auf der Startseite unter „App“) kommt das nur per Kopieren zum Mac.</p><textarea class="kopie" id="kopieAlt" readonly>${esc(offline.map(rundeAlsText).join('\n\n'))}</textarea><div class="reihe"><button class="zweit" type="button" onclick="kopieren('kopieAlt')">Text kopieren</button><button class="zweit" type="button" onclick="speicher.set('offeneRunden',[]);render()">Liste leeren</button></div></section>` : ''}`;
 }
@@ -1029,6 +1030,23 @@ function rundeDetailHtml(x){
       ${b && b.k ? `<div class="erkl"><b>KI:</b> ${esc(b.k)}</div>` : ''}
       ${q.erklaerung ? `<div class="erkl">${quizText(q.erklaerung)}</div>` : ''}</span></li>`;
   }).join('')}</ul>`;
+}
+/* Selbsteinschätzung (Kalibrierung): Wie oft stimmt „sicher“ wirklich? Sichere Fehler sind die gefährlichsten. */
+function kalibrierungHtml(){
+  const proFach = {};
+  let sicherN = 0, sicherF = 0, geratenN = 0, geratenR = 0;
+  alleFragen.forEach(q => (verlauf[q.id] || []).forEach(v => {
+    if (v.s === true) { sicherN++; if (!v.r) { sicherF++; (proFach[q.fach] = proFach[q.fach] || {n: 0, f: 0}).f++; } (proFach[q.fach] = proFach[q.fach] || {n: 0, f: 0}).n++; }
+    else if (v.s === false) { geratenN++; if (v.r) geratenR++; }
+  }));
+  if (sicherN < 10) return '';
+  const quote = Math.round((sicherN - sicherF) / sicherN * 100);
+  const schlimm = Object.entries(proFach).filter(([, x]) => x.n >= 5).map(([name, x]) => ({name, q: x.f / x.n, f: x.f})).sort((a, b) => b.f - a.f).slice(0, 2).filter(x => x.f);
+  return `<section><h2>Selbsteinschätzung</h2><div class="liste" style="padding:12px 14px">
+    <div><b>${quote} %</b> richtig, wenn du dir sicher warst${quote < 85 ? ' · da lohnt sich genaueres Hinschauen' : ''}</div>
+    ${geratenN >= 5 ? `<div class="klein" style="margin-top:4px">Geraten: ${Math.round(geratenR / geratenN * 100)} % trotzdem richtig, diese Fragen kommen bald wieder</div>` : ''}
+    ${schlimm.length ? `<div class="klein" style="margin-top:4px">Am häufigsten „sicher, aber falsch“: ${schlimm.map(x => `${esc((FAECHER.find(f => f.name === x.name) || {}).kurz || x.name)} (${x.f}×)`).join(', ')}</div>` : ''}
+  </div></section>`;
 }
 function meineRundenHtml(){
   const l = speicher.get('meineRunden', []).filter(x => x.n > 0).slice().reverse();
