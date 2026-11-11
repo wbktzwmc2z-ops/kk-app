@@ -517,6 +517,11 @@ nav.tabs a[aria-current="page"]{color:#1c1c1e;background:rgba(120,120,128,.16)}
 .zkopf .nr{color:#8e8e93}
 a{color:inherit}
 @media (prefers-color-scheme:dark){.haupt .pfeil{background:#2c2c2e;color:#fff}nav.tabs a[aria-current="page"]{color:#fff}.fachsprung .chip,.fachsprung .chip[aria-pressed="true"],.chip.gesamt[aria-pressed="true"]{color:#fff}.zknoepfe .lang{background:#2c2c2e;color:#fff}.zknoepfe .kurz{background:#1c1c1e;color:#fff;border-color:#48484a}.countdown,.countdown.warn{background:#2c2c2e;color:#d1d1d6}}
+
+/* Grundfarbe Nachtblau als Unterton (11.11.2026): Haken, Kästchen, Knöpfe, aktive Elemente */
+:root{--accent:#1e293b; --accent-ink:#1e293b; --accent-soft:#e8ecf2}
+input[type="checkbox"]{accent-color:#1e293b}
+@media (prefers-color-scheme:dark){:root{--accent:#cbd5e1; --accent-ink:#e2e8f0; --accent-soft:#1e293b}}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -561,7 +566,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 5c6a86</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version ac9c43</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
