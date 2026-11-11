@@ -14,12 +14,17 @@ const FACHSCHEMA = {
   Entscheidung:  {p50:'#fff1f2', p100:'#ffe4e6', p300:'#fda4af', p600:'#e11d48', p800:'#9f1239'}
 };
 const fachSchema = n => FACHSCHEMA[Object.keys(FACHSCHEMA).find(k => String(n).includes(k))] || FACHSCHEMA.Fallstudie;
+function statusleisteFaerben(farbe){
+  // Statusleiste (iPhone) in der Farbe, mit der der Verlauf oben beginnt
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { if (!m.media || m.media.includes('light')) m.content = farbe; });
+}
 function farbschemaSetzen(){
   const r = document.documentElement.style;
   const namen = ['--accent','--accent-soft','--accent-ink','--sicher','--gelernt','--wackelig','--verlauf-oben','--verlauf-mitte'];
   const dunkel = matchMedia('(prefers-color-scheme: dark)').matches;
-  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); return; }
+  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#dbeafe'); return; }
   const c = fachSchema(FAECHER[fachAuswahl].name);
+  statusleisteFaerben(c.p100);
   r.setProperty('--accent', c.p600); r.setProperty('--accent-soft', c.p100); r.setProperty('--accent-ink', c.p800);
   r.setProperty('--sicher', c.p800); r.setProperty('--gelernt', c.p600); r.setProperty('--wackelig', c.p300);
   r.setProperty('--verlauf-oben', c.p100); r.setProperty('--verlauf-mitte', c.p50);
