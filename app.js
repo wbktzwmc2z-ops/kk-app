@@ -729,9 +729,8 @@ function seiteQuiz(){
   <section><h2>Fächer und Themen</h2>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
-  <p class="sub">${window.__KK ? (window.__KK.briefkastenAn() ? 'Ergebnisse gehen automatisch zum Mac und kommen dort in deinen Lernstand.' : 'Übertragung zum Mac nicht eingerichtet (Einstellungen).') : dbStatus === 'ok' ? 'Ergebnisse werden gespeichert und beim nächsten Chat am Mac in deinen Lernstand übernommen.' : dbStatus === 'pruefe' ? 'Verbindung wird geprüft …' : 'Ohne Verbindung: Ergebnisse bleiben auf dem Handy, am Ende kannst du sie kopieren.'}</p>
   ${meineRundenHtml()}
-  ${offline.length && dbStatus !== 'ok' && !(window.__KK && window.__KK.briefkastenAn && window.__KK.briefkastenAn()) ? `<section><h2>Noch nicht übertragen (von Hand)</h2><p class="sub">Ohne Briefkasten-Schlüssel (unten auf der Startseite unter „App“) kommt das nur per Kopieren zum Mac.</p><textarea class="kopie" id="kopieAlt" readonly>${esc(offline.map(rundeAlsText).join('\n\n'))}</textarea><div class="reihe"><button class="zweit" type="button" onclick="kopieren('kopieAlt')">Text kopieren</button><button class="zweit" type="button" onclick="speicher.set('offeneRunden',[]);render()">Liste leeren</button></div></section>` : ''}`;
+  ${offline.length && dbStatus !== 'ok' && !window.__KK ? `<section><h2>Noch nicht übertragen (von Hand)</h2><p class="sub">Ohne Briefkasten-Schlüssel (unten auf der Startseite unter „App“) kommt das nur per Kopieren zum Mac.</p><textarea class="kopie" id="kopieAlt" readonly>${esc(offline.map(rundeAlsText).join('\n\n'))}</textarea><div class="reihe"><button class="zweit" type="button" onclick="kopieren('kopieAlt')">Text kopieren</button><button class="zweit" type="button" onclick="speicher.set('offeneRunden',[]);render()">Liste leeren</button></div></section>` : ''}`;
 }
 
 const TYPNAME = {mc: 'Auswahl', wf: 'Richtig oder falsch', zuordnung: 'Zuordnen', luecke: 'Lücke füllen', karte: 'Aufdecken', reihenfolge: 'Reihenfolge', fehler: 'Fehler finden'};
@@ -991,7 +990,6 @@ function meineRundenHtml(){
   const gruppen = [];
   l.forEach(x => { let g = gruppen.find(y => y.name === x.wahl); if (!g) gruppen.push(g = {name: x.wahl, runden: []}); g.runden.push(x); });
   return `<section><h2>Meine Runden</h2>
-    <p class="sub">${wartend ? `${wartend} ${wartend === 1 ? 'Runde wartet' : 'Runden warten'} noch auf die Übertragung zum Mac. ` : ''}Fach aufklappen, dann eine Runde antippen: dort stehen alle Fragen mit Lösung und Erklärung.</p>
     ${gruppen.map(g => {
       const f = FAECHER.find(y => y.name === g.name);
       const n = g.runden.reduce((s, x) => s + x.n, 0), r = g.runden.reduce((s, x) => s + x.richtig, 0);
