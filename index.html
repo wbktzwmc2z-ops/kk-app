@@ -443,6 +443,25 @@ nav.tabs a[aria-current="page"]{color:var(--accent)}
 .vorschlag .tag{background:var(--f);color:#fff}
 .haken.ja{background:var(--accent);border-color:var(--accent)}
 .warnhinweis{background:var(--accent-soft);border-color:var(--accent)}
+
+/* ===== Apple-Stil wie die Dateien-App (iOS „Liquid Glass“): schwebende Glas-Leiste unten mit hervorgehobenem Reiter,
+   graue runde Suchfelder mit Lupe, große fette Seitentitel. ===== */
+h1{font-size:34px;font-weight:800;letter-spacing:-.025em;line-height:1.1;color:var(--ink)}
+nav.tabs{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:6px;border:0;border-radius:999px;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+  box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 8px 30px rgba(0,0,0,.12);max-width:520px;margin:0 auto}
+nav.tabs a{border-radius:999px;padding:7px 4px 6px;gap:2px;font-size:12.5px;font-weight:600;color:var(--ink)}
+nav.tabs a svg{width:24px;height:24px}
+nav.tabs a[aria-current="page"]{background:rgba(120,120,128,.14);color:#007aff}
+@media (prefers-color-scheme:dark){nav.tabs{background:rgba(40,40,44,.72);box-shadow:0 0 0 .5px rgba(255,255,255,.08),0 8px 30px rgba(0,0,0,.4)}
+  nav.tabs a[aria-current="page"]{background:rgba(255,255,255,.12);color:#0a84ff}}
+main{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+/* Suchleiste wie bei Apple: grau, ganz rund, Lupe links */
+.suche{border:0;box-shadow:none;border-radius:999px;background:rgba(118,118,128,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233c3c43' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 16px 50%/20px;
+  padding:13px 16px 13px 46px;font-size:17px;color:var(--ink)}
+.suche::placeholder{color:rgba(60,60,67,.6)}
+.suche:focus{outline:none;background-color:rgba(118,118,128,.18)}
+@media (prefers-color-scheme:dark){.suche{background-color:rgba(118,118,128,.24)}.suche::placeholder{color:rgba(235,235,245,.6)}}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -487,7 +506,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 6a1687</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 3fa42a</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
