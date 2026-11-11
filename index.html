@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#e4d5c6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1c1a13" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#dbeafe" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -402,6 +402,47 @@ nav.tabs a[aria-current="page"]{color:#fc75b4}
 .countdown{background:var(--accent-soft);color:var(--accent-ink)}
 .countdown.warn{background:var(--accent-soft);color:var(--accent-ink)}
 .warnhinweis{width:100%;text-align:left;background:var(--accent-soft);color:var(--ink);border-color:var(--accent);font-size:14px;line-height:1.4}
+
+/* ===== Theme „Azure Flow“ wie das Dashboard (11.11.2026): helles Grau mit blauem Verlauf, weiße Karten mit feinem Rand,
+   Blau als Akzent, Status in Blau-Stufen, Fachkarten pastell. Steht am Ende und gewinnt. ===== */
+:root{
+  --bg:#f8fafc; --panel:#ffffff; --ink:oklch(0.321 0 0); --muted:oklch(0.547 0.032 263.292); --line:oklch(0.927 0.007 260.732);
+  --accent:oklch(0.623 0.204 259.903); --accent-soft:oklch(0.951 0.027 237.572); --accent-ink:oklch(0.374 0.184 263.942);
+  --sicher:oklch(0.374 0.184 263.942); --gelernt:oklch(0.623 0.204 259.903); --wackelig:oklch(0.80 0.10 245); --offen:oklch(0.927 0.007 260.732);
+  --radius:1.15rem; --schatten:0 1px 2px rgba(16,24,40,.04),0 4px 14px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:oklch(0.2 0.015 260); --panel:oklch(0.25 0.02 260); --ink:oklch(0.95 0 0); --muted:oklch(0.72 0.03 260); --line:oklch(0.33 0.02 260);
+  --accent:oklch(0.68 0.18 259.9); --accent-soft:oklch(0.32 0.06 260); --accent-ink:oklch(0.82 0.1 260);
+  --sicher:oklch(0.82 0.1 260); --gelernt:oklch(0.68 0.18 259.9); --wackelig:oklch(0.5 0.12 255); --offen:oklch(0.33 0.02 260)}}
+html{background:var(--bg)}
+body{background:linear-gradient(180deg,var(--verlauf-oben,#dbeafe) 0,var(--verlauf-mitte,#eff6ff) 260px,#f8fafc 640px) no-repeat,#f8fafc;min-height:100vh;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+@media (prefers-color-scheme:dark){body{background:linear-gradient(180deg,oklch(0.28 0.06 260) 0,oklch(0.2 0.015 260) 520px) no-repeat,oklch(0.2 0.015 260)}}
+h1{color:var(--ink)}
+main h2{color:var(--muted)}
+.liste,.fach,.bilanz,details.quizfach,.leer,.karte{border:1px solid var(--line);box-shadow:var(--schatten)}
+/* Tageskarte hell wie die Kennzahlen im Dashboard */
+.bilanz{background:var(--panel);color:var(--ink)}
+.bilanz-zahlen b{color:var(--ink)}
+.bilanz-zahlen div:nth-child(3) b{color:var(--accent)}
+.bilanz-zahlen span,.bilanz-fort .klein{color:var(--muted)}
+.bilanz .bar{background:var(--line)}
+.bilanz-fort .bar span{background:var(--accent)!important}
+/* Leiste unten hell, aktiver Reiter blau */
+nav.tabs{background:color-mix(in srgb,var(--panel) 92%,transparent);border-top:1px solid var(--line);color:var(--muted)}
+nav.tabs a{color:var(--muted)}
+nav.tabs a[aria-current="page"]{color:var(--accent)}
+.haupt{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.haupt .pfeil{background:var(--accent);color:#fff}
+.haupt small{color:var(--muted)}
+.chip[aria-pressed="true"],.chip.gesamt[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fachsprung .chip[aria-pressed="true"]{background:var(--f);border-color:var(--f);color:#fff}
+.countdown,.countdown.warn{background:var(--accent-soft);color:var(--accent-ink)}
+.vfach{background:var(--f)}
+.vorschlag .tag{background:var(--f);color:#fff}
+.haken.ja{background:var(--accent);border-color:var(--accent)}
+.warnhinweis{background:var(--accent-soft);border-color:var(--accent)}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -446,7 +487,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version d7287e</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version e14106</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>

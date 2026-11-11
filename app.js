@@ -4,7 +4,26 @@ const D = window.__KK_DATEN || null;
 /* ---------- Hilfen ---------- */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const FACHFARBE = (D && D.farben) || {};   // Fachfarben A (erdig)   // Palette Cream/Taupe/Sage/Burgundy/Navy/Mocha/Stone
+const FACHFARBE = (D && D.farben) || {};   // wie das Dashboard (Tailwind 600)
+/* Fach-Paletten wie im Dashboard (Azure Flow): Karten in Stufe 50, beim gewählten Fach schwingt alles um */
+const FACHSCHEMA = {
+  Fallstudie:    {p50:'#eff6ff', p100:'#dbeafe', p300:'#93c5fd', p600:'#2563eb', p800:'#1e40af'},
+  Programmierung:{p50:'#f5f3ff', p100:'#ede9fe', p300:'#c4b5fd', p600:'#7c3aed', p800:'#5b21b6'},
+  Tableau:       {p50:'#fff7ed', p100:'#ffedd5', p300:'#fdba74', p600:'#ea580c', p800:'#9a3412'},
+  Quantitative:  {p50:'#f0fdfa', p100:'#ccfbf1', p300:'#5eead4', p600:'#0d9488', p800:'#115e59'},
+  Entscheidung:  {p50:'#fff1f2', p100:'#ffe4e6', p300:'#fda4af', p600:'#e11d48', p800:'#9f1239'}
+};
+const fachSchema = n => FACHSCHEMA[Object.keys(FACHSCHEMA).find(k => String(n).includes(k))] || FACHSCHEMA.Fallstudie;
+function farbschemaSetzen(){
+  const r = document.documentElement.style;
+  const namen = ['--accent','--accent-soft','--accent-ink','--sicher','--gelernt','--wackelig','--verlauf-oben','--verlauf-mitte'];
+  const dunkel = matchMedia('(prefers-color-scheme: dark)').matches;
+  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); return; }
+  const c = fachSchema(FAECHER[fachAuswahl].name);
+  r.setProperty('--accent', c.p600); r.setProperty('--accent-soft', c.p100); r.setProperty('--accent-ink', c.p800);
+  r.setProperty('--sicher', c.p800); r.setProperty('--gelernt', c.p600); r.setProperty('--wackelig', c.p300);
+  r.setProperty('--verlauf-oben', c.p100); r.setProperty('--verlauf-mitte', c.p50);
+}
 const fachFarbe = n => FACHFARBE[Object.keys(FACHFARBE).find(k => String(n).includes(k))] || '#1f5f4a';
 const pad = n => String(n).padStart(2, '0');
 const isoTag = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -380,6 +399,7 @@ function seiteAusHash(){
   const vorher = seite;
   seite = h === 'zettel' ? 'faecher' : ['heute', 'quiz', 'faecher', 'einstellungen'].includes(h) ? h : 'heute';
   if (seite === 'faecher' && vorher !== 'faecher') { fachAuswahl = null; offeneFaecher.clear(); }   // neu auf „Fächer“: Gesamtansicht, alles zu
+  farbschemaSetzen();
   document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.s === seite ? 'page' : 'false'));
   render();
   window.scrollTo(0, 0);
@@ -480,6 +500,7 @@ function springeZuFach(fi){
   document.querySelectorAll('.fachsprung .chip').forEach((c, i) => c.setAttribute('aria-pressed', i === fachAuswahl));
   const g = $('#gesamt'); if (g) g.setAttribute('aria-pressed', fachAuswahl === null);
   fachInhalt();
+  farbschemaSetzen();
 }
 function fachInhalt(){ $('#fachinhalt').innerHTML = fachInhaltHtml(); }
 function fachInhaltHtml(){
@@ -504,7 +525,7 @@ function fachInhaltHtml(){
     const nF = f.themen.filter(t => istFaellig(f, t)).length;
     const auf = k => offeneFaecher.has(fi + k) ? ' open' : '';
     const merk = k => `ontoggle="this.open ? offeneFaecher.add('${fi + k}') : offeneFaecher.delete('${fi + k}')"`;
-    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)}">
+    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)};background:${fachSchema(f.name).p50}">
       <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %)</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>
