@@ -8,7 +8,7 @@ const FACHFARBE = (D && D.farben) || {};   // Kühl & Warm: FSWI/PROG kühl, QM/
 /* Fach-Paletten wie im Dashboard (Azure Flow): Karten in Stufe 50, beim gewählten Fach schwingt alles um */
 const FACHSCHEMA = {
   Fallstudie:    {p50:'#eff6ff', p100:'#dbeafe', p300:'#93c5fd', p600:'#2563eb', p800:'#1e40af'},
-  Programmierung:{p50:'#f5f3ff', p100:'#ede9fe', p300:'#c4b5fd', p600:'#7c3aed', p800:'#5b21b6'},
+  Programmier:{p50:'#f5f3ff', p100:'#ede9fe', p300:'#c4b5fd', p600:'#7c3aed', p800:'#5b21b6'},
   Tableau:       {p50:'#f1f6ec', p100:'#dfeacf', p300:'#a9c48f', p600:'#3a6e2f', p800:'#26491f'},
   Quantitative:  {p50:'#fff1f2', p100:'#ffe4e6', p300:'#fda4af', p600:'#e11d48', p800:'#9f1239'},
   Entscheidung:  {p50:'#fff7ed', p100:'#ffedd5', p300:'#fdba74', p600:'#f97316', p800:'#9a3412'}
