@@ -467,6 +467,7 @@ main{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 nav.tabs{grid-template-columns:repeat(3,1fr)}
 .mehr-knopf{position:fixed;top:12px;right:16px;z-index:21;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;gap:4px;
   background:rgba(255,255,255,.75);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.10)}
+.im-quiz .mehr-knopf{display:none}
 .mehr-knopf span{width:5px;height:5px;border-radius:50%;background:#1c1c1e}
 @media (prefers-color-scheme:dark){.mehr-knopf{background:rgba(40,40,44,.75)}.mehr-knopf span{background:#fff}}
 main > section:first-child{padding-right:52px}
@@ -528,6 +529,30 @@ nav.tabs a[aria-current="page"]{color:var(--accent)}
 .haken.ja{background:var(--accent);border-color:var(--accent)}
 .chips.segment .chip[aria-pressed="true"]{color:var(--accent)}
 @media (prefers-color-scheme:dark){:root{--accent:#cbd5e1; --accent-ink:#e2e8f0; --accent-soft:#1e293b}}
+
+/* Quiz mit mehr Nachtblau (11.11.2026): kräftiger Fortschrittsbalken, Fragenummer und Buchstaben in Akzentfarbe,
+   gewählte Antwort blau umrandet, „Sicher“ gefüllt, Prüfen/Weiter als gefüllte Knöpfe */
+.frage{border:0;box-shadow:var(--schatten);border-radius:20px}
+.fortschritt{height:6px;background:var(--accent-soft)}
+.fortschritt span{background:var(--accent)}
+.frage .meta{color:var(--accent);font-weight:600}
+.opt{background:#fff;border:1.5px solid var(--line)}
+.opt .b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:700 13px/1 -apple-system,system-ui,sans-serif}
+.opt.gewaehlt{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+.opt.gewaehlt .b{background:var(--accent);color:#fff}
+.sicherheit .sub{color:var(--accent);font-weight:600}
+.sicherheit .opt.sendKnopf:first-child{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.sicherheit .opt.sendKnopf:last-child{border-color:var(--accent);color:var(--accent);font-weight:700}
+.sicherheit .opt.sendKnopf:disabled{opacity:.35}
+#sendKnopf,.rueck ~ .haupt{background:var(--accent);color:#fff;border:0}
+#sendKnopf .pfeil,.rueck ~ .haupt .pfeil{background:rgba(255,255,255,.18);color:#fff}
+.lueckenfeld{background:#f2f2f7;border-color:transparent}
+.lueckenfeld:focus{border-color:var(--accent);background:#fff}
+.schritte .schritt{border-color:var(--accent);background:var(--accent-soft)}
+.schritte .schritt .b{color:var(--accent)}
+.token.gewaehlt{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.karte-antwort{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.zuo select:focus{border-color:var(--accent);outline:none}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -572,7 +597,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version ba4f39</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 152664</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>

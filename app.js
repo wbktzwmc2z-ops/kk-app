@@ -421,6 +421,7 @@ function standHinweis(){
 function render(){
   const app = $('#app');
   if (!D) { app.innerHTML = '<section><h1>Keine Daten</h1><p class="sub">Am Mac „Handy aktualisieren“ sagen.</p></section>'; return; }
+  document.body.classList.toggle('im-quiz', seite === 'quiz' && !!runde);   // im Quiz kein „…“-Knopf über dem Fortschrittsbalken
   app.innerHTML = ({heute: seiteHeute, quiz: seiteQuiz, faecher: seiteFaecher, einstellungen: seiteEinstellungen})[seite]();
 }
 
