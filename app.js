@@ -297,6 +297,25 @@ function tag1Stand(f, t){
   const n = qs.filter(q => (verlauf[q.id] || []).some(v => isoTag(new Date(v.t)) > t.zuletzt)).length;
   return {n, ziel, fertig: n >= ziel};
 }
+function tag1Liste(){
+  const l = [];
+  FAECHER.forEach((f, fi) => f.themen.forEach(t => {
+    const st = tag1Stand(f, t), anzahl = f.fragen.filter(q => q.nr === t.nr).length;
+    if (st && anzahl && !(istFaellig(f, t) && !st.n)) l.push({fi, f, t, st, anzahl});   // schon Fälliges steht bei den Vorschlägen
+  }));
+  return l;
+}
+function tag1Html(){
+  const l = tag1Liste();
+  if (!l.length) return '';
+  const fertig = l.filter(x => x.st.fertig).length;
+  return `<section><h2>Tag 1 · neu gelernt, kurz abfragen</h2>
+  <p class="sub" style="margin:-4px 0 8px">${fertig} von ${l.length} Themen geschafft · je ${TAG1_FRAGEN} Fragen, wie im Lernplan</p>
+  <ul class="liste">${l.map(({fi, f, t, st, anzahl}) => {
+    const aktion = `quizStarten(${fi}, ${Math.min(Math.max(TAG1_FRAGEN, st.ziel), anzahl)}, '${t.nr}')`;
+    return `<li class="vorschlag${st.fertig ? ' erledigt' : ''}" style="--f:${fachFarbe(f.name)};cursor:pointer" role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"><span class="tag">${esc(f.kurz)} ${esc(t.nr)}</span><span class="txt">${esc(t.titel)}<div class="klein">${st.fertig ? '✓ erledigt' : `${st.n} von ${st.ziel} Fragen`}</div></span><span class="pfeil" aria-hidden="true">${st.fertig ? '✓' : '→'}</span></li>`;
+  }).join('')}</ul></section>`;
+}
 function heuteGeuebt(f, t){
   const qs = alleFragen.filter(q => q.fach === f.name && q.nr === t.nr);
   const ziel = Math.min(6, qs.length), freiZiel = Math.min(2, qs.filter(q => q.typ === 'luecke' || q.typ === 'karte').length);
@@ -467,6 +486,7 @@ function seiteHeute(){
   </section>
   ${window.__KK && !window.__KK.briefkastenAn() ? `<button class="zweit warnhinweis" type="button" onclick="geheZu('einstellungen')">Übertragung zum Mac ist nicht eingerichtet. Hier antippen und unter „Übertragung zum Mac“ den Schlüssel einfügen.</button>` : ''}
   ${nFragen ? tagesbilanzHtml() : ''}
+  ${nFragen ? tag1Html() : ''}
   ${(() => { const v = nFragen ? vorschlaege() : [];
     if (!v.length) return nFragen ? `<p class="leer">Für heute ist alles wiederholt. Ein Quiz geht trotzdem: Quiz-Seite.</p>` : '<p class="leer">Noch keine Quizfragen vorhanden.</p>';
     return `<section><h2>Als Nächstes sinnvoll</h2>${vorschlagKnopf(v[0], true)}
@@ -654,7 +674,7 @@ function vorschlaege(){
       }
       const g = heuteGeuebt(f, t), faellig = istFaellig(f, t), seit = t.naechsteWdh ? -tageBis(t.naechsteWdh) : 0;
       const t1 = tag1Stand(f, t);
-      if (t1 && !t1.fertig && !faellig) { l.push({fi, f, nr: t.nr, t, anzahl, punkte: 310 + klausurDruck, grund: `Tag 1: am ${datumKurz(t.zuletzt)} neu gelernt, kurz abfragen` + (t1.n ? ` (${t1.n} von ${t1.ziel} Fragen)` : '')}); return; }
+      if (t1 && !t1.fertig && !faellig) return;   // steht im eigenen Block „Tag 1“ oben auf der Heute-Seite
       if (faellig && g.durch) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 100 + klausurDruck, grund: `heute ${Math.round(g.r / g.n * 100)} % im ersten Versuch, morgen nochmal`});
       else if (faellig && g.n > 0) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 320 + klausurDruck, grund: `heute angefangen, es fehlt: ${g.fehlt.join(', ')}`});
       else if (faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 300 + seit * 5 + klausurDruck, grund: (t.naechsteWdh ? `fällig seit ${datumKurz(t.naechsteWdh)}` : 'fällig') + (imPlanHeute(f) && !heuteFach(f).n ? ' · laut Plan heute dran' : '')});
