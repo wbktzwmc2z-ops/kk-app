@@ -20,11 +20,11 @@ function statusleisteFaerben(farbe){
 }
 function farbschemaSetzen(){
   const r = document.documentElement.style;
-  const namen = ['--accent','--accent-soft','--accent-ink','--sicher','--gelernt','--wackelig','--verlauf-oben','--verlauf-mitte'];
+  const namen = ['--accent','--accent-soft','--accent-ink','--sicher','--gelernt','--wackelig','--verlauf-oben','--verlauf-mitte','--kopf'];
   const dunkel = matchMedia('(prefers-color-scheme: dark)').matches;
-  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#dbeafe'); return; }
+  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#3b82f6'); return; }
   const c = fachSchema(FAECHER[fachAuswahl].name);
-  statusleisteFaerben(c.p100);
+  statusleisteFaerben(c.p600); r.setProperty('--kopf', c.p600);
   r.setProperty('--accent', c.p600); r.setProperty('--accent-soft', c.p100); r.setProperty('--accent-ink', c.p800);
   r.setProperty('--sicher', c.p800); r.setProperty('--gelernt', c.p600); r.setProperty('--wackelig', c.p300);
   r.setProperty('--verlauf-oben', c.p100); r.setProperty('--verlauf-mitte', c.p50);
