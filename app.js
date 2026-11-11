@@ -256,13 +256,48 @@ FAECHER.forEach(f => (f.fragen || []).forEach(q => alleFragen.push(Object.assign
 const themaVon = (fach, nr) => (FAECHER.find(f => f.name === fach)?.themen || []).find(t => t.nr === nr);
 /* Heute im Quiz wiederholt? Erster Versuch, ab 3 Fragen und 80 % richtig = vorläufig erledigt,
    bis der Mac es beim nächsten Abgleich in den Lernstand einträgt (danach ist es dort ohnehin nicht mehr fällig). */
+/* Erledigt-Regel (nach „Successive Relearning“, Rawson & Dunlosky): Ein Thema gilt heute als wiederholt, wenn
+   - mindestens 6 verschiedene Fragen dran waren (bei kleineren Themen alle),
+   - davon mindestens 80 % im ersten Versuch sicher richtig (Geratenes zählt nicht),
+   - jeder Fehler später richtig nachgeholt wurde,
+   - mindestens 2 Fragen selbst abgerufen wurden (Lücke oder Karte), sofern das Thema so viele hat. */
 function heuteGeuebt(f, t){
-  let n = 0, r = 0;
-  alleFragen.forEach(q => {
-    if (q.fach !== f.name || q.nr !== t.nr) return;
-    (verlauf[q.id] || []).forEach(v => { if (String(v.t).slice(0, 10) === HEUTE || isoTag(new Date(v.t)) === HEUTE) { n++; if (v.r && v.s !== false) r++; else if (v.r) r += .5; } });
+  const qs = alleFragen.filter(q => q.fach === f.name && q.nr === t.nr);
+  const ziel = Math.min(6, qs.length), freiZiel = Math.min(2, qs.filter(q => q.typ === 'luecke' || q.typ === 'karte').length);
+  let n = 0, r = 0, offen = 0, frei = 0;
+  qs.forEach(q => {
+    const heute = (verlauf[q.id] || []).filter(v => isoTag(new Date(v.t)) === HEUTE);
+    if (!heute.length) return;
+    n++;
+    const gut = v => v.r && v.s !== false;
+    if (gut(heute[0])) r++;
+    if (!heute.some(v => gut(v) || v.n)) offen++;
+    if ((q.typ === 'luecke' || q.typ === 'karte') && heute.some(gut)) frei++;
   });
-  return {n, r, erledigt: n >= 3 && r / n >= .8};
+  const fehlt = [];
+  if (n < ziel) fehlt.push(`noch ${ziel - n} ${ziel - n === 1 ? 'Frage' : 'Fragen'}`);
+  if (n && r / n < .8) fehlt.push('unter 80 %');
+  if (offen) fehlt.push(`${offen} ${offen === 1 ? 'Fehler' : 'Fehler'} nachholen`);
+  if (frei < freiZiel) fehlt.push(`${freiZiel - frei} zum Eintippen`);
+  const erledigt = n >= ziel && n > 0 && r / n >= .8 && !offen && frei >= freiZiel;
+  return {n, r, ziel, erledigt, fehlt, durch: !erledigt && n >= ziel && !offen && r / n < .8};   // durch = genug geübt, aber unter 80 %: morgen wieder
+}
+/* Karteikasten pro Frage: sicher richtig an aufeinanderfolgenden Tagen → nächster Abstand 1, 3, 7, 14, 30 Tage.
+   Falsch oder geraten → morgen wieder. Noch nie gefragt → sofort. */
+const ABSTAND = [1, 1, 3, 7, 14, 30];
+function frageStufe(q){
+  const v = verlauf[q.id] || [];
+  if (!v.length) return {neu: true, faellig: true, ueber: 99};
+  let stufe = 0, tag = null;
+  for (let i = v.length - 1; i >= 0; i--) {
+    const d = isoTag(new Date(v[i].t));
+    if (d === tag) continue;
+    if (!(v[i].r && v[i].s !== false)) break;
+    stufe++; tag = d;
+  }
+  const letzte = v[v.length - 1], seit = (Date.now() - new Date(letzte.t)) / 864e5;
+  const abstand = ABSTAND[Math.min(stufe, ABSTAND.length - 1)];
+  return {neu: false, stufe, faellig: seit >= abstand - .25, ueber: seit / abstand};
 }
 function istFaellig(f, t, mitHeute){
   if (!t || t.status === 'offen') return false;
@@ -308,7 +343,7 @@ function merkeAntwort(id, richtig, zeit, sicher){
       // schon da? gleiche Runde (rid) oder eine lokale Antwort aus dem Zeitraum dieser Runde
       const bis = new Date(new Date(r.ende || r.start).getTime() + 60000).toISOString();
       if (l.some(v => v.rid === r.id || v.t === r.start || (String(v.t) >= String(r.start) && String(v.t) <= bis))) return;
-      l.push({t: r.start, r: x.richtig, s: x.sicher, rid: r.id});
+      l.push({t: r.start, r: x.richtig, s: x.sicher, rid: r.id, n: !!x.spaeterRichtig});
       l.sort((p, q) => String(p.t).localeCompare(String(q.t)));
       verlauf[x.id] = l.slice(-5);
       geaendert = true;
@@ -557,15 +592,21 @@ function vorschlaege(){
         return;
       }
       const g = heuteGeuebt(f, t), faellig = istFaellig(f, t), seit = t.naechsteWdh ? -tageBis(t.naechsteWdh) : 0;
-      if (faellig && g.n < 3) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 300 + seit * 5 + klausurDruck, grund: (t.naechsteWdh ? `fällig seit ${datumKurz(t.naechsteWdh)}` : 'fällig') + (imPlanHeute(f) && !heuteFach(f).n ? ' · laut Plan heute dran' : '')});
-      else if (t.status === 'wackelig' && g.n < 3 && !faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 200 + klausurDruck, grund: 'wackelig'});
-      else if (faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 100 + klausurDruck - g.n, grund: `heute ${Math.round(g.r / g.n * 100)} %, noch einmal festigen`});
+      if (faellig && g.durch) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 100 + klausurDruck, grund: `heute ${Math.round(g.r / g.n * 100)} % im ersten Versuch, morgen nochmal`});
+      else if (faellig && g.n > 0) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 320 + klausurDruck, grund: `heute angefangen, es fehlt: ${g.fehlt.join(', ')}`});
+      else if (faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 300 + seit * 5 + klausurDruck, grund: (t.naechsteWdh ? `fällig seit ${datumKurz(t.naechsteWdh)}` : 'fällig') + (imPlanHeute(f) && !heuteFach(f).n ? ' · laut Plan heute dran' : '')});
+      else if (t.status === 'wackelig' && !g.erledigt && !faellig) l.push({fi, f, nr: t.nr, t, anzahl, punkte: 200 + klausurDruck, grund: 'wackelig'});
     });
     if (f.fragen.length && !heuteFach(f).n) l.push({fi, f, nr: null, anzahl: f.fragen.length, punkte: 50 + klausurDruck, grund: 'heute noch nicht wiederholt, gemischt'});
   });
+  // Alles Fällige geschafft → gemischte Runde über alle Fächer (Interleaving), fällige Einzelfragen zuerst
+  if (!l.some(x => x.punkte >= 200)) l.push({alle: true, punkte: 260, anzahl: alleFragen.length, grund: 'Fälliges geschafft: gemischt über alle Fächer, fällige Einzelfragen zuerst'});
   return l.sort((a, b) => b.punkte - a.punkte);
 }
 function vorschlagKnopf(v, haupt){
+  if (v.alle) return haupt
+    ? `<button class="haupt" type="button" onclick="quizStarten('alle', quizLaenge)"><span><span class="vfach" style="--f:var(--ink)">MIX</span>Alle Fächer gemischt<small>${esc(v.grund)}</small></span><span class="pfeil">→</span></button>`
+    : `<li class="vorschlag" style="cursor:pointer" role="button" tabindex="0" onclick="quizStarten('alle', quizLaenge)"><span class="tag">MIX</span><span class="txt">Alle Fächer gemischt<div class="klein">${esc(v.grund)}</div></span><span class="pfeil" aria-hidden="true">→</span></li>`;
   const n = v.nr ? `Math.min(quizLaenge, ${v.anzahl})` : 'quizLaenge';
   const aktion = v.zettel ? `zeigeZettel(${v.fi}, '${v.nr}', ${v.kurz})` : `quizStarten(${v.fi}, ${n}${v.nr ? `, '${v.nr}'` : ''})`;
   const titel = v.nr ? `${v.f.kurz} ${v.nr} · ${v.t.titel}` : `${v.f.name} gemischt`;
@@ -616,7 +657,7 @@ function fachReihenfolge(){
     const wort = new RegExp('(^|[^A-Za-zÄÖÜäöü])' + f.kurz + '([^A-Za-zÄÖÜäöü]|$)', 'i');
     const imPlan = offen.some(t => wort.test(t) && /wdh|wiederhol|abfrag|auffrisch/i.test(t));
     const faellig = f.themen.filter(t => istFaellig(f, t));
-    const offenF = faellig.filter(t => heuteGeuebt(f, t).n < 3);          // fällig und heute noch nicht angefasst
+    const offenF = faellig.filter(t => heuteGeuebt(f, t).n === 0);          // fällig und heute noch nicht angefasst
     const wackelig = f.themen.filter(t => t.status === 'wackelig').length;
     const tage = f.klausur ? tageBis(f.klausur) : 999;
     const h = heuteFach(f);
@@ -638,10 +679,13 @@ function punkte(q){
   if (q.schwaeche) p += 1;
   const v = verlauf[q.id] || [];
   const letzte = v[v.length - 1];
-  if (!letzte) p += 1;
-  else if (!letzte.r) p += letzte.s ? 6 : 4;                // sicher und falsch: kommt am ehesten wieder
-  else if (letzte.s === false) p += 2;                      // richtig, aber geraten
-  else if ((Date.now() - new Date(letzte.t)) < 2 * 864e5) p -= 3;
+  const k = frageStufe(q);                                  // Karteikasten: fällige Einzelfragen zuerst
+  if (k.neu) p += 2;
+  else if (k.faellig) p += 3 + Math.min(k.ueber, 3);
+  else p -= 5;
+  if (letzte && !letzte.r) p += letzte.s ? 6 : 4;          // sicher und falsch: kommt am ehesten wieder
+  else if (letzte && letzte.s === false) p += 2;           // richtig, aber geraten
+  if (q.typ === 'luecke' || q.typ === 'karte') p += .5;    // selbst abrufen wirkt stärker als wiedererkennen
   return p;
 }
 function fragenWaehlen(wahl, n, nr){
@@ -705,7 +749,8 @@ function quizFachHtml(x){
     const marke = istFaellig(f, t) ? '<span class="countdown warn">fällig</span>'
       : g.erledigt ? '<span class="pill sicher">heute ✓</span>' : `<span class="pill ${t.status}">${t.status}</span>`;
     const info = !s.anzahl ? 'noch keine Fragen'
-      : (s.zuletzt ? `zuletzt ${tagWort(s.zuletzt)}: ${s.r} von ${s.n} richtig` : 'noch nicht geübt') + ` · ${s.gesehen} von ${s.anzahl} Fragen gesehen`;
+      : (s.zuletzt ? `zuletzt ${tagWort(s.zuletzt)}: ${s.r} von ${s.n} richtig` : 'noch nicht geübt') + ` · ${s.gesehen} von ${s.anzahl} Fragen gesehen`
+        + (g.n && !g.erledigt && istFaellig(f, t) ? ` · bis erledigt: ${g.fehlt.join(', ')}` : '');
     const aktion = s.anzahl ? `quizStarten(${fi}, Math.min(quizLaenge, ${s.anzahl}), '${t.nr}')` : '';
     return `<li style="--f:${fachFarbe(f.name)}${aktion ? ';cursor:pointer' : ''}"${aktion ? ` role="button" tabindex="0" onclick="${aktion}" onkeydown="if(event.key==='Enter'){${aktion}}"` : ''}>
       <span class="tag">${esc(t.nr)}</span><span class="txt">${esc(t.titel)} ${marke}<div class="klein">${info}</div></span>${aktion ? '<span class="pfeil" aria-hidden="true">→</span>' : ''}</li>`;
@@ -884,6 +929,9 @@ function beantworte(wahl, richtig, sicher, tippfehler){
   if (!q._wdh) {
     merkeAntwort(q.id, richtig, zeit, sicher);
     speicher.set('verlauf', verlauf);
+  } else if (richtig) {                                    // Fehler in derselben Runde nachgeholt
+    const e = (verlauf[q.id] || []).filter(v => v.rid === r.id).pop();
+    if (e) { e.n = true; speicher.set('verlauf', verlauf); }
   }
   // Falsches kommt am Ende der Runde wieder, höchstens zweimal pro Frage
   if (!richtig && r.fragen.filter(x => x.id === q.id).length < 3) {
