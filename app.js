@@ -22,7 +22,8 @@ function farbschemaSetzen(){
   const r = document.documentElement.style;
   const namen = ['--accent','--accent-soft','--accent-ink','--sicher','--gelernt','--wackelig','--verlauf-oben','--verlauf-mitte','--kopf'];
   const dunkel = matchMedia('(prefers-color-scheme: dark)').matches;
-  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#ffffff'); return; }
+  /* neutraler Apple-Stil: kein Farbumschwung mehr je Fach (Wunsch Maxie 11.11.2026) */
+  if (true) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#ffffff'); return; }
   const c = fachSchema(FAECHER[fachAuswahl].name);
   statusleisteFaerben('#ffffff');
   r.setProperty('--accent', c.p600); r.setProperty('--accent-soft', c.p100); r.setProperty('--accent-ink', c.p800);
@@ -530,7 +531,7 @@ function fachInhaltHtml(){
     const nF = f.themen.filter(t => istFaellig(f, t)).length;
     const auf = k => offeneFaecher.has(fi + k) ? ' open' : '';
     const merk = k => `ontoggle="this.open ? offeneFaecher.add('${fi + k}') : offeneFaecher.delete('${fi + k}')"`;
-    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)};background:${fachSchema(f.name).p50}">
+    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)}">
       <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %)</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>

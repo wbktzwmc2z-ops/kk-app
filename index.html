@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1e2a44" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -486,6 +486,37 @@ main h2{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.
 .liste li{border-bottom:0;position:relative}
 .liste li + li::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid rgba(60,60,67,.18)}
 .liste li{padding:12px 16px}
+
+/* ===== Neutral wie der App Store (Wunsch 11.11.2026): weißer Hintergrund ohne Verlauf, Karten mit leichtem grauem Schatten,
+   Schrift schwarz/grau, keine blauen Akzente. Fachfarben nur noch in den kleinen Fach-Etiketten. ===== */
+:root{
+  --bg:#ffffff; --panel:#ffffff; --ink:#1c1c1e; --muted:#8e8e93; --line:#e5e5ea;
+  --accent:#1c1c1e; --accent-soft:#f2f2f7; --accent-ink:#1c1c1e;
+  --sicher:#1c1c1e; --gelernt:#8e8e93; --wackelig:#c7c7cc; --offen:#ececf0;
+  --schatten:0 2px 6px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000000; --panel:#1c1c1e; --ink:#ffffff; --muted:#8e8e93; --line:#38383a;
+  --accent:#ffffff; --accent-soft:#2c2c2e; --accent-ink:#ffffff;
+  --sicher:#ffffff; --gelernt:#8e8e93; --wackelig:#48484a; --offen:#2c2c2e}}
+html{background:var(--bg)}
+body{background:var(--bg)!important}
+main h2{color:#8e8e93}
+.liste,.fach,.bilanz,details.quizfach,.leer,.karte,.haupt{border:0;box-shadow:var(--schatten);border-radius:20px}
+.bilanz-zahlen div:nth-child(3) b{color:var(--ink)}
+.bilanz-fort .bar span{background:var(--ink)!important}
+.haupt .pfeil{background:#f2f2f7;color:#1c1c1e}
+nav.tabs a[aria-current="page"]{color:#1c1c1e;background:rgba(120,120,128,.16)}
+.chip.gesamt[aria-pressed="true"]{color:#1c1c1e;background:rgba(118,118,128,.2)}
+.countdown,.countdown.warn{background:#f2f2f7;color:#3a3a3c}
+.fach::before{display:none}
+.fach{padding-top:14px}
+.fachsprung .chip,.fachsprung .chip[aria-pressed="true"]{color:#1c1c1e}
+.zknoepfe .lang{background:#f2f2f7;border-color:transparent;color:#1c1c1e}
+.zknoepfe .kurz{background:#fff;border:1px solid #d1d1d6;color:#1c1c1e}
+.zkopf .nr{color:#8e8e93}
+a{color:inherit}
+@media (prefers-color-scheme:dark){.haupt .pfeil{background:#2c2c2e;color:#fff}nav.tabs a[aria-current="page"]{color:#fff}.fachsprung .chip,.fachsprung .chip[aria-pressed="true"],.chip.gesamt[aria-pressed="true"]{color:#fff}.zknoepfe .lang{background:#2c2c2e;color:#fff}.zknoepfe .kurz{background:#1c1c1e;color:#fff;border-color:#48484a}.countdown,.countdown.warn{background:#2c2c2e;color:#d1d1d6}}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -530,7 +561,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version a6c1ee</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version eb5b82</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
