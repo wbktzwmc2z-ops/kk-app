@@ -851,7 +851,7 @@ function seiteQuiz(){
   const laengen = [5, 10, 20].map(n => `<button class="chip" type="button" aria-pressed="${quizLaenge === n}" onclick="quizLaenge=${n};render()">${n} Fragen</button>`).join('');
   const offline = speicher.get('offeneRunden', []);
   const erstes = reihe[0];
-  return `<section><h1>Quiz</h1><p class="sub">Eine Runde, ein Fach. Nur Wiederholung zu Themen, die du schon gelernt hast. Fälliges und alte Fehler kommen zuerst, was du falsch hast, kommt am Ende der Runde noch einmal.</p></section>
+  return `<section><h1>Quiz</h1></section>
   ${erstes ? `
   <section><h2>Länge</h2><div class="chips segment">${laengen}</div></section>
   <section><h2>Fächer und Themen</h2>
