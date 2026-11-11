@@ -2,7 +2,7 @@
    Mit Internet: App-Dateien immer zuerst frisch vom Server (höchstens 4 Sekunden warten), sonst aus dem Speicher.
    So kommt neuer App-Code beim ersten Öffnen an, und offline startet die App trotzdem.
    Daten (daten.enc), version.json und salt.json laufen NICHT hierüber, die verwaltet start.js selbst. */
-const SPEICHER = 'kk-app-v9';
+const SPEICHER = 'kk-app-v10';
 const DATEIEN = ['./', 'index.html', 'start.js', 'manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
