@@ -22,13 +22,12 @@ function farbschemaSetzen(){
   const r = document.documentElement.style;
   const namen = ['--accent','--accent-soft','--accent-ink','--sicher','--gelernt','--wackelig','--verlauf-oben','--verlauf-mitte','--kopf'];
   const dunkel = matchMedia('(prefers-color-scheme: dark)').matches;
-  /* neutraler Apple-Stil: kein Farbumschwung mehr je Fach (Wunsch Maxie 11.11.2026) */
-  if (true) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#ffffff'); return; }
+  /* Fächer-Seite: gewähltes Fach färbt die Akzente (Balken, Knöpfe) in seine Farbe, sonst Nachtblau */
+  if (typeof seite === 'undefined' || seite !== 'faecher' || fachAuswahl === null || !FAECHER[fachAuswahl] || dunkel) { namen.forEach(n => r.removeProperty(n)); statusleisteFaerben('#ffffff'); return; }
   const c = fachSchema(FAECHER[fachAuswahl].name);
   statusleisteFaerben('#ffffff');
   r.setProperty('--accent', c.p600); r.setProperty('--accent-soft', c.p100); r.setProperty('--accent-ink', c.p800);
   r.setProperty('--sicher', c.p800); r.setProperty('--gelernt', c.p600); r.setProperty('--wackelig', c.p300);
-  r.setProperty('--verlauf-oben', c.p100); r.setProperty('--verlauf-mitte', c.p50);
 }
 const fachFarbe = n => FACHFARBE[Object.keys(FACHFARBE).find(k => String(n).includes(k))] || '#1f5f4a';
 const pad = n => String(n).padStart(2, '0');
@@ -531,7 +530,7 @@ function fachInhaltHtml(){
     const nF = f.themen.filter(t => istFaellig(f, t)).length;
     const auf = k => offeneFaecher.has(fi + k) ? ' open' : '';
     const merk = k => `ontoggle="this.open ? offeneFaecher.add('${fi + k}') : offeneFaecher.delete('${fi + k}')"`;
-    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)}">
+    return `<article class="fach" id="fach-${fi}" style="--f:${fachFarbe(f.name)};--sicher:${fachSchema(f.name).p800};--gelernt:${fachSchema(f.name).p600};--wackelig:${fachSchema(f.name).p300}">
       <div class="kopf"><div><span class="tag">${esc(f.kurz)}</span><div class="name">${esc(f.name)}</div><div class="sub">${gel} von ${f.themen.length} Themen gelernt (${Math.round(gel / n * 100)} %)</div></div>
         ${tage !== null && tage >= 0 ? `<span class="countdown${tage < 21 ? ' warn' : ''}">${tage} Tage</span>` : ''}</div>
       <div class="bar">${bar}</div>
