@@ -449,7 +449,7 @@ function seiteHeute(){
   return `
   <section>
     ${nochTage !== null ? `<p class="sub">Noch ${nochTage} Tage bis zur ersten Klausur</p>` : ''}
-    <h1>${new Date().toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'})}</h1>
+    <h1>${new Date().toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'short'})}</h1>
     ${standHinweis()}
   </section>
   ${window.__KK && !window.__KK.briefkastenAn() ? `<button class="zweit warnhinweis" type="button" onclick="geheZu('einstellungen')">Übertragung zum Mac ist nicht eingerichtet. Hier antippen und unter „Übertragung zum Mac“ den Schlüssel einfügen.</button>` : ''}
@@ -818,7 +818,7 @@ function seiteQuiz(){
   const erstes = reihe[0];
   return `<section><h1>Quiz</h1><p class="sub">Eine Runde, ein Fach. Nur Wiederholung zu Themen, die du schon gelernt hast. Fälliges und alte Fehler kommen zuerst, was du falsch hast, kommt am Ende der Runde noch einmal.</p></section>
   ${erstes ? `
-  <section><h2>Länge</h2><div class="chips">${laengen}</div></section>
+  <section><h2>Länge</h2><div class="chips segment">${laengen}</div></section>
   <section><h2>Fächer und Themen</h2>
     ${reihe.map(x => quizFachHtml(x)).join('')}</section>`
   : '<p class="leer">Noch keine Fragen. Am Mac „Handy aktualisieren“ sagen, dann schreibt der Wiederholer welche.</p>'}
