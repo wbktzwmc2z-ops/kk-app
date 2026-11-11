@@ -4,7 +4,7 @@ const D = window.__KK_DATEN || null;
 /* ---------- Hilfen ---------- */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const FACHFARBE = (D && D.farben) || {};   // Palette Cream/Taupe/Sage/Burgundy/Navy/Mocha/Stone
+const FACHFARBE = (D && D.farben) || {};   // Fachfarben A (erdig)   // Palette Cream/Taupe/Sage/Burgundy/Navy/Mocha/Stone
 const fachFarbe = n => FACHFARBE[Object.keys(FACHFARBE).find(k => String(n).includes(k))] || '#1f5f4a';
 const pad = n => String(n).padStart(2, '0');
 const isoTag = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());

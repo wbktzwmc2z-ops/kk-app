@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#e0d5c6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#262423" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e4d5c6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1a13" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -365,6 +365,42 @@ body{background:linear-gradient(180deg,var(--dunkel) 0,var(--hell) 100%);min-hei
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--accent:#f5f3ef; --accent-ink:#f5f3ef; --accent-soft:#33302e}}
 :root[data-theme="dark"]{--accent:#f5f3ef; --accent-ink:#f5f3ef; --accent-soft:#33302e}
 .haupt .pfeil{color:var(--bg)}
+
+/* ===== Theme „Mocha-Kopf“: Soft Sand F0E5DB, Mocha Green 474329, Watermelon Pink FC75B4. Steht am Ende und gewinnt. ===== */
+:root{
+  --bg:#f0e5db; --panel:#fff8f2; --ink:#474329; --muted:#7f7865; --line:#e2d5c6;
+  --accent:#fc75b4; --accent-ink:#c93f86; --accent-soft:#fde3ef;
+  --hell:#f0e5db; --dunkel:#e4d5c6;
+  --schatten:0 1px 2px rgba(71,67,41,.05),0 6px 20px rgba(71,67,41,.08);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#25231a; --panel:#2f2c21; --ink:#f0e5db; --muted:#b3a996; --line:#3d392b;
+  --accent:#fc75b4; --accent-ink:#fc8fc2; --accent-soft:#4a2a3a; --hell:#2a2820; --dunkel:#1c1a13}}
+:root[data-theme="dark"]{
+  --bg:#25231a; --panel:#2f2c21; --ink:#f0e5db; --muted:#b3a996; --line:#3d392b;
+  --accent:#fc75b4; --accent-ink:#fc8fc2; --accent-soft:#4a2a3a; --hell:#2a2820; --dunkel:#1c1a13}
+body{background:linear-gradient(180deg,var(--dunkel) 0,var(--hell) 100%)}
+h1{color:var(--ink)}
+/* Tageskarte dunkel in Mocha Green, Pink als Highlight */
+.bilanz{background:#474329;color:#f0e5db;border-color:transparent}
+.bilanz-zahlen b{color:#f0e5db}
+.bilanz-zahlen div:nth-child(3) b{color:#fc75b4}
+.bilanz-zahlen span{color:rgba(240,229,219,.72)}
+.bilanz .bar{background:rgba(240,229,219,.18)}
+.bilanz-fort .bar span{background:#fc75b4!important}
+.bilanz-fort .klein{color:rgba(240,229,219,.72)}
+/* Pfeil-Knopf pink mit Mocha-Pfeil */
+.haupt .pfeil{background:var(--accent);color:#474329}
+.haupt small{color:var(--muted)}
+/* Leiste unten in Mocha Green */
+nav.tabs{background:#474329;border-top:0;color:rgba(240,229,219,.7)}
+nav.tabs a{color:rgba(240,229,219,.7)}
+nav.tabs a[aria-current="page"]{color:#fc75b4}
+/* gewählte Chips und Gesamtansicht: Mocha mit Sand-Schrift */
+.chip[aria-pressed="true"],.chip.gesamt[aria-pressed="true"]{background:#474329;color:#f0e5db;border-color:#474329}
+.fachsprung .chip[aria-pressed="true"]{background:var(--f);border-color:var(--f);color:#fff}
+.countdown{background:var(--accent-soft);color:var(--accent-ink)}
+.countdown.warn{background:var(--accent-soft);color:var(--accent-ink)}
 </style>
 <style id="zettelStil"></style>
 <style>
@@ -409,7 +445,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 4aeb4c</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version d1a931</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
