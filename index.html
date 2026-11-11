@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernen">
-<meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#bfdbfe" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1e2a44" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Lernen unterwegs</title>
@@ -271,7 +271,6 @@ html{background:linear-gradient(180deg,var(--kopf) 0 50%,var(--bg) 50% 100%)}   
 body{margin:0}
 /* Verlauf: kräftiges Rot hinter der Statusleiste (weiße Uhrzeit bleibt lesbar), dann Pastell-Rosé, dann Off-White */
 body{background:var(--bg) linear-gradient(180deg,var(--kopf) 0,var(--kopf) env(safe-area-inset-top,0px),var(--oben) calc(env(safe-area-inset-top,0px) + 70px),color-mix(in srgb,var(--oben) 50%,var(--bg)) calc(env(safe-area-inset-top,0px) + 230px),var(--bg) calc(env(safe-area-inset-top,0px) + 560px)) no-repeat;min-height:100vh}
-main{padding-top:calc(18px + env(safe-area-inset-top,0px))}
 h1{font-weight:550;letter-spacing:-.015em}
 h2{text-transform:none;letter-spacing:0;font-size:14px;font-weight:550;color:var(--muted)}
 .liste,.fach,.bilanz,details.quizfach,.leer,.stelle,.karte{border:0.5px solid var(--line);box-shadow:var(--schatten)}
@@ -415,11 +414,9 @@ nav.tabs a[aria-current="page"]{color:#fc75b4}
   --bg:oklch(0.2 0.015 260); --panel:oklch(0.25 0.02 260); --ink:oklch(0.95 0 0); --muted:oklch(0.72 0.03 260); --line:oklch(0.33 0.02 260);
   --accent:oklch(0.68 0.18 259.9); --accent-soft:oklch(0.32 0.06 260); --accent-ink:oklch(0.82 0.1 260);
   --sicher:oklch(0.82 0.1 260); --gelernt:oklch(0.68 0.18 259.9); --wackelig:oklch(0.5 0.12 255); --offen:oklch(0.33 0.02 260)}}
-html{background:linear-gradient(180deg,var(--kopf,#3b82f6) 0 50%,#f8fafc 50% 100%)}
-/* App läuft bis unter die Statusleiste (black-translucent): dort kräftiges Blau, damit die weiße Uhrzeit lesbar ist,
-   darunter der helle Verlauf. In Claude (ohne Statusleiste) ist env(...) 0 und der blaue Streifen fällt weg. */
-main{padding-top:calc(18px + env(safe-area-inset-top,0px))}
-body{background:linear-gradient(180deg,var(--kopf,#3b82f6) 0,var(--kopf,#3b82f6) env(safe-area-inset-top,0px),var(--verlauf-oben,#dbeafe) calc(env(safe-area-inset-top,0px) + 40px),var(--verlauf-mitte,#eff6ff) calc(env(safe-area-inset-top,0px) + 260px),#f8fafc calc(env(safe-area-inset-top,0px) + 640px)) no-repeat,#f8fafc;min-height:100vh;
+/* wie beim Beige-Verlauf, der funktioniert hat: Statusleiste (theme-color) = oberste Farbe des Verlaufs, dann heller nach unten */
+html{background:linear-gradient(180deg,var(--kopf,#bfdbfe) 0 50%,#f8fafc 50% 100%)}
+body{background:linear-gradient(180deg,var(--kopf,#bfdbfe) 0,var(--verlauf-oben,#dbeafe) 140px,var(--verlauf-mitte,#eff6ff) 320px,#f8fafc 680px) no-repeat,#f8fafc;min-height:100vh;
   font-family:Inter,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
 @media (prefers-color-scheme:dark){body{background:linear-gradient(180deg,oklch(0.28 0.06 260) 0,oklch(0.2 0.015 260) 520px) no-repeat,oklch(0.2 0.015 260)}}
 h1{color:var(--ink)}
@@ -490,7 +487,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 532f01</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 2ec9ac</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>
