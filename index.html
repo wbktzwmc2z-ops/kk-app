@@ -137,6 +137,13 @@ details.schw ul{margin:6px 0 0;padding-left:18px;font-size:14px;display:flex;fle
 .zkopf .nr{font-size:13px;color:var(--f)}
 .zknoepfe{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .zknoepfe .zweit{width:100%;padding:10px 8px;font-size:14px;font-weight:600}
+.zknoepfe .pod{grid-column:1/-1;background:color-mix(in srgb,var(--f) 8%,var(--panel))}
+.podspieler{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:40;background:var(--panel);border:0.5px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.podspieler .kopf{display:flex;gap:8px;align-items:baseline;font-size:14px;margin-bottom:6px}.podspieler .kopf span{flex:1;color:var(--muted)}
+.podspieler .kopf button{border:0;background:none;font-size:16px;color:var(--muted)}
+.podspieler audio{width:100%}.podspieler .tempo{display:flex;gap:6px;margin-top:6px}
+.podspieler .tempo button{flex:1;border:0.5px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:5px 0;font-size:13px}
+.podspieler .tempo button.on{background:var(--ink);color:var(--panel)}
 .zknoepfe .lang{background:color-mix(in srgb,var(--f) 16%,var(--panel));border-color:color-mix(in srgb,var(--f) 40%,var(--line));color:var(--ink)}
 .zknoepfe .kurz{background:var(--panel);border:1.5px dashed color-mix(in srgb,var(--f) 55%,var(--line));color:color-mix(in srgb,var(--f) 70%,var(--ink))}
 .bilanz{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;gap:12px}
@@ -619,7 +626,7 @@ body{padding-top:env(safe-area-inset-top,0px)}
   <button class="haupt" id="schlossKnopf" type="submit"><span>Öffnen</span><span class="pfeil">→</span></button>
   <p id="schlossMeldung" hidden></p>
   <p class="sub">Die Daten sind verschlüsselt und werden nur auf diesem Handy entschlüsselt.</p>
-  <p class="sub" style="font-size:11px;opacity:.7">App-Version 1366c4</p>
+  <p class="sub" style="font-size:11px;opacity:.7">App-Version 98fbef</p>
 </form></div>
 <script src="start.js"></script>
 </body></html>

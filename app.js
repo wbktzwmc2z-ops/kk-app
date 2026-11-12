@@ -555,7 +555,7 @@ function fachInhaltHtml(){
     const zettel = nrs.map(nr => {
       const z = f.zettel.find(x => x.nr === nr), c = f.cheats.find(x => x.nr === nr);
       return `<li class="zrow"><div class="zkopf"><span class="nr">${nr}</span><span class="t">${esc((z || c).titel.replace(/^\d+\s*[_.:-]?\s*/, ''))}</span></div>
-        <div class="zknoepfe">${z ? `<button class="zweit lang" type="button" onclick="zeigeZettel(${fi},'${nr}',false)">Lernzettel</button>` : ''}${c ? `<button class="zweit kurz" type="button" onclick="zeigeZettel(${fi},'${nr}',true)">Cheat Sheet</button>` : ''}</div></li>`;
+        <div class="zknoepfe">${z ? `<button class="zweit lang" type="button" onclick="zeigeZettel(${fi},'${nr}',false)">Lernzettel</button>` : ''}${c ? `<button class="zweit kurz" type="button" onclick="zeigeZettel(${fi},'${nr}',true)">Cheat Sheet</button>` : ''}${!window.__KK && (f.podcasts || []).some(p => p.nr === nr) ? `<button class="zweit pod" type="button" onclick="spielePodcast(${fi},'${nr}')">🎧 Podcast anhören</button>` : ''}</div></li>`;
     }).join('');
     // 2. Themen mit Status (weniger wichtig), Schwächen darunter
     const themen = f.themen.map(t => `<li><span class="nr">${t.nr}</span><span class="t">${esc(t.titel)}${istFaellig(f, t) ? ' <span class="countdown warn">fällig</span>' : ''}</span><span class="pill ${t.status}">${t.status}</span></li>`).join('');
@@ -573,6 +573,18 @@ function fachInhaltHtml(){
         <ul class="themen">${themen}</ul>${schw}</details>
     </article>`;
   }).join('');
+}
+/* Lernpodcast abspielen (Datei liegt mit der Handy-Seite veröffentlicht unter podcasts/…; in der Offline-App nicht vorhanden) */
+function spielePodcast(fi, nr){
+  const f = FAECHER[fi], p = (f.podcasts || []).find(x => x.nr === nr); if (!p) return;
+  let box = document.getElementById('podspieler');
+  if (!box) { box = document.createElement('div'); box.id = 'podspieler'; box.className = 'podspieler'; document.body.appendChild(box); }
+  box.innerHTML = `<div class="kopf"><b>🎧 ${esc(f.kurz)} ${esc(nr)}</b><span>${esc(p.titel)}</span><button type="button" aria-label="Schließen" onclick="this.closest('.podspieler').remove()">✕</button></div>
+    <audio controls autoplay playsinline src="${esc(p.pfad)}"></audio>
+    <div class="tempo">${[1, 1.25, 1.5, 2].map(t => `<button type="button" data-t="${t}">${String(t).replace('.', ',')}×</button>`).join('')}</div>`;
+  const a = box.querySelector('audio');
+  a.onerror = () => { box.querySelector('.kopf span').textContent = 'Konnte nicht geladen werden (nur mit Internet).'; };
+  box.querySelectorAll('.tempo button').forEach(b => b.onclick = () => { a.playbackRate = +b.dataset.t; box.querySelectorAll('.tempo button').forEach(x => x.classList.toggle('on', x === b)); });
 }
 function zettelTrefferHtml(){
   const q = zettelSuche.trim().toLowerCase();
