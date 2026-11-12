@@ -580,11 +580,20 @@ function spielePodcast(fi, nr){
   let box = document.getElementById('podspieler');
   if (!box) { box = document.createElement('div'); box.id = 'podspieler'; box.className = 'podspieler'; document.body.appendChild(box); }
   box.innerHTML = `<div class="kopf"><b>🎧 ${esc(f.kurz)} ${esc(nr)}</b><span>${esc(p.titel)}</span><button type="button" aria-label="Schließen" onclick="this.closest('.podspieler').remove()">✕</button></div>
-    <audio controls autoplay playsinline src="${esc(p.pfad)}"></audio>
+    <p class="podlaedt">Wird geladen …</p><audio controls playsinline preload="auto" hidden></audio>
     <div class="tempo">${[1, 1.25, 1.5, 2].map(t => `<button type="button" data-t="${t}">${String(t).replace('.', ',')}×</button>`).join('')}</div>`;
-  const a = box.querySelector('audio');
-  a.onerror = () => { box.querySelector('.kopf span').textContent = 'Konnte nicht geladen werden (nur mit Internet).'; };
-  box.querySelectorAll('.tempo button').forEach(b => b.onclick = () => { a.playbackRate = +b.dataset.t; box.querySelectorAll('.tempo button').forEach(x => x.classList.toggle('on', x === b)); });
+  const a = box.querySelector('audio'), info = box.querySelector('.podlaedt');
+  let rate = 1;
+  box.querySelectorAll('.tempo button').forEach(b => b.onclick = () => { rate = a.playbackRate = +b.dataset.t; box.querySelectorAll('.tempo button').forEach(x => x.classList.toggle('on', x === b)); });
+  a.onerror = () => { info.hidden = false; info.textContent = 'Konnte nicht abgespielt werden.'; };
+  // Ganze Datei zuerst laden und dann aus dem Speicher abspielen: Streamen bricht auf dem iPhone
+  // je nach Server nach ein paar Sekunden ab. (Herunterladen erlaubt die Artifact-Seite für MP3 nicht.)
+  fetch(p.pfad).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => {
+    if (!box.isConnected) return;
+    const url = URL.createObjectURL(new Blob([b], { type: 'audio/mpeg' }));
+    a.src = url; a.hidden = false; info.hidden = true;
+    a.playbackRate = rate; a.play().catch(() => {});
+  }).catch(() => { info.textContent = 'Konnte nicht geladen werden (nur mit Internet).'; });
 }
 function zettelTrefferHtml(){
   const q = zettelSuche.trim().toLowerCase();
